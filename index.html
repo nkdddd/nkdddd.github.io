@@ -78,7 +78,7 @@
             </div>
         </div>
         
-        <!-- 하단 광고 및 유튜브 배너 -->
+        <!-- 하단 유튜브 커스텀 광고 -->
         <div id="global-ad" class="w-full bg-slate-100 border-t border-gray-300 shrink-0 h-[65px] pb-safe relative z-[999] overflow-hidden block">
             <a href="https://youtube.com/channel/UCYTmPgr--s2x3hJW14wDx_g?si=DeqwKVK4kXz2nHYi" target="_blank" class="w-full h-full bg-gradient-to-r from-red-600 to-red-500 flex items-center justify-between px-5 text-white no-underline relative overflow-hidden group flex-row">
                 <div class="absolute top-0 -left-[100%] h-full w-1/2 z-0 block transform -skew-x-12 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 group-hover:animate-[shine_1.5s_infinite]"></div>
@@ -188,8 +188,7 @@
             return { w, kr, emoji, ans, parts: w.split('') };
         });
 
-        // 🟢 전역 상태 변수 🟢
-        window.userUnsubscribe = null; // 실시간 동기화 해제용 변수
+        window.userUnsubscribe = null; 
 
         window.state = {
             tab: 'learning', subTab: 'alphabet',
@@ -232,7 +231,7 @@
         };
 
         // =========================================================================
-        // 3. 🚨 안전한 자체 모달 팝업 시스템
+        // 3. 자체 통합 모달 시스템
         // =========================================================================
         window.openCustomPrompt = function(message, hasInput, actionType, payload) {
             window.state.customPrompt = { message, hasInput, actionType, payload };
@@ -293,6 +292,7 @@
                             coins: firebase.firestore.FieldValue.increment(item.price)
                         }).catch(e => console.log(e));
                         await db.collection("market").doc(item.id).delete();
+                        
                         window.showToast("구매 성공! 도감에 추가되었습니다.");
                         window.loadSocialData();
                     }
@@ -363,7 +363,7 @@
         };
 
         // =========================================================================
-        // 5. 훈련소 퀴즈 로직
+        // 5. 훈련소 퀴즈 엔진
         // =========================================================================
         window.setLearningSubTab = function(sub) { window.state.subTab = sub; window.render(); };
         window.setTrainingMode = function(mode) {
@@ -478,7 +478,7 @@
         };
 
         // =========================================================================
-        // 6. 소셜, 상점, 제단 시스템
+        // 6. 소셜, 상점, 진화(제단) 시스템
         // =========================================================================
         window.changeTab = function(tab) {
             window.state.tab = tab;
@@ -491,19 +491,19 @@
             if(grade === 'MYTHIC') return 'grade-mythic'; if(grade === 'LEGEND') return 'grade-legend';
             if(grade === 'SUPER') return 'grade-super'; if(grade === 'RARE') return 'grade-rare'; return 'grade-normal'; 
         };
-        window.getSmallBadge = function(grade) {
-            if (grade === 'MYTHIC') return '<div class="absolute top-0 right-0 bg-purple-500 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-black z-20">SSS급</div>';
-            if (grade === 'LEGEND') return '<div class="absolute top-0 right-0 bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-black z-20">SS급</div>';
-            if (grade === 'SUPER') return '<div class="absolute top-0 right-0 bg-yellow-400 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-black z-20">S급</div>';
-            if (grade === 'RARE') return '<div class="absolute top-0 right-0 bg-slate-400 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-black z-20">A급</div>';
-            return '';
-        };
         window.getCardGradeText = function(grade) {
             if (grade === 'MYTHIC') return '<span class="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1 rounded-full text-xs font-black shadow-lg">🌌 SSS급 환상</span>';
             if (grade === 'LEGEND') return '<span class="bg-gradient-to-r from-red-500 to-rose-400 text-white px-3 py-1 rounded-full text-xs font-black shadow-md">💎 SS급 전설</span>';
             if (grade === 'SUPER') return '<span class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1 rounded-full text-xs font-black shadow-sm">👑 S급 일반포켓몬</span>';
             if (grade === 'RARE') return '<span class="bg-gradient-to-r from-slate-300 to-slate-400 text-slate-700 px-3 py-1 rounded-full text-xs font-black shadow-sm">✨ A급 단어</span>';
             return '<span class="bg-gray-200 text-gray-500 px-3 py-1 rounded-full text-xs font-bold">NORMAL (일반)</span>';
+        };
+        window.getSmallBadge = function(grade) {
+            if (grade === 'MYTHIC') return '<div class="absolute top-0 right-0 bg-purple-500 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-black z-20">SSS급</div>';
+            if (grade === 'LEGEND') return '<div class="absolute top-0 right-0 bg-red-500 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-black z-20">SS급</div>';
+            if (grade === 'SUPER') return '<div class="absolute top-0 right-0 bg-yellow-400 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-black z-20">S급</div>';
+            if (grade === 'RARE') return '<div class="absolute top-0 right-0 bg-slate-400 text-white text-[8px] px-2 py-0.5 rounded-bl-lg font-black z-20">A급</div>';
+            return '';
         };
 
         window.openPack = async function() {
@@ -612,10 +612,12 @@
             if(!item) return;
             if(item.sellerUid === window.currentUser.uid) return window.showToast("본인이 올린 카드입니다.");
             if(window.state.coins < item.price) return window.showToast("코인이 부족합니다.");
-            window.openCustomPrompt(`${item.sellerEmail.split('@')[0]}님의 ${item.card.kr} 카드를 ${item.price}코인에 구매하시겠습니까?`, false, 'BUY_MARKET', marketId);
+            
+            const sellerName = item.sellerEmail ? item.sellerEmail.split('@')[0] : '유저';
+            window.openCustomPrompt(`${sellerName}님의 ${item.card.kr} 카드를 ${item.price}코인에 구매하시겠습니까?`, false, 'BUY_MARKET', marketId);
         };
 
-        // 제단 기능
+        // 🟢 🚨 제단 로직 완벽 수정 🚨 🟢
         window.selectForAltar = function(id) {
             if(window.state.altarSelection.includes(id)) { window.state.altarSelection = window.state.altarSelection.filter(x => x !== id); } 
             else {
@@ -639,6 +641,7 @@
                 window.state.clickTimeLeft -= 1;
                 const timeEl = document.getElementById('click-time-text');
                 if (timeEl) timeEl.innerText = window.state.clickTimeLeft + '초';
+
                 if(window.state.clickTimeLeft <= 0) {
                     clearInterval(window.state.clickTimer); window.state.isClickingMode = false; window.tryEvolve();
                 }
@@ -664,15 +667,14 @@
             if(btn) { btn.style.transform = 'scale(0.9)'; setTimeout(()=>btn.style.transform='scale(1)', 50); }
         };
 
+        // 🚨 방패(카드보호) 시 카드가 삭제되지 않도록 순서 버그 해결 🚨
         window.tryEvolve = async function() {
             window.state.isProcessing = true; window.render();
+            
             const cardId = window.state.altarSelection[0];
             const baseCard = window.state.inventory.find(c => c.id === cardId);
             const grade = baseCard.grade;
 
-            window.state.inventory = window.state.inventory.filter(c => !window.state.altarSelection.includes(c.id));
-            window.state.altarSelection = [];
-            
             let baseRate = 0.60; let nextGrade = 'SUPER'; let pokeIdList = NORMAL_POKE_IDS;
             if (grade === 'SUPER') { baseRate = 0.40; nextGrade = 'LEGEND'; pokeIdList = LEGEND_IDS; }
             if (grade === 'LEGEND') { baseRate = 0.30; nextGrade = 'MYTHIC'; pokeIdList = MYTHIC_IDS; }
@@ -684,6 +686,10 @@
 
             try {
                 if(Math.random() < finalRate) { 
+                    // 1) 대성공: 이제 카드를 지우고 새 카드를 추가합니다.
+                    window.state.inventory = window.state.inventory.filter(c => !window.state.altarSelection.includes(c.id));
+                    window.state.altarSelection = [];
+                    
                     const randomId = pokeIdList[Math.floor(Math.random() * pokeIdList.length)];
                     const poke = await fetchPokemon(randomId);
                     const newCard = { id: Date.now().toString(), grade: nextGrade, ...poke };
@@ -692,10 +698,14 @@
                     window.state.packOpening = true; 
                     window.showToast(`✨ 합성 대성공! (확률 ${Math.floor(finalRate*100)}% 적용)`);
                     window.speak(poke.w);
+                    
                     window.state.isProcessing = false; window.state.clickCount = 0; 
                     window.saveData(); window.render();
                 } else {
                     if (isProtected) {
+                        // 2) 실패지만 방어 성공: 카드를 지우지 않고 제단 선택만 해제합니다.
+                        window.state.altarSelection = [];
+                        
                         window.state.isFailingProtected = true; window.render();
                         setTimeout(() => {
                             window.state.isFailingProtected = false; window.showToast("휴~ 🛡️ 터치 보호막 덕분에 카드를 지켰어요!");
@@ -703,6 +713,10 @@
                             window.saveData(); window.render();
                         }, 2500);
                     } else {
+                        // 3) 완전 실패: 방어 실패로 카드를 지웁니다.
+                        window.state.inventory = window.state.inventory.filter(c => !window.state.altarSelection.includes(c.id));
+                        window.state.altarSelection = [];
+                        
                         window.state.isFailing = true; window.render();
                         setTimeout(() => {
                             window.state.isFailing = false; window.showToast("💥 합성 실패... 카드가 모두 사라졌습니다.");
@@ -1237,9 +1251,6 @@
             `;
         };
 
-        // =========================================================================
-        // 8. 메인 렌더링 
-        // =========================================================================
         window.render = function() {
             const app = document.getElementById('app');
             if (!window.isAuthReady) return;
@@ -1388,7 +1399,7 @@
         };
 
         // =========================================================================
-        // 9. 초기 구동 및 실시간 파이어베이스 동기화
+        // 9. 초기 구동 및 시스템 연동
         // =========================================================================
         window.startGuestMode = function(reason) {
             if (window.isGuestMode) return;
@@ -1443,7 +1454,6 @@
                 if (user) {
                     window.currentUser = user;
                     try {
-                        // 🚨 핵심: 파이어베이스 실시간 구독 (onSnapshot)
                         if(window.userUnsubscribe) window.userUnsubscribe();
                         window.userUnsubscribe = db.collection("users").doc(user.uid).onSnapshot((docSnap) => {
                             if (docSnap.exists) {
@@ -1456,7 +1466,6 @@
                                 window.state.coins = 200; window.state.inventory = []; window.state.friends = []; window.state.friendRequests = [];
                                 window.saveData();
                             }
-                            // 애니메이션 방해 금지 로직
                             if (!window.state.isProcessing && !window.state.isClickingMode && !window.state.packOpening) {
                                 window.render();
                             }
