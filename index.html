@@ -1055,10 +1055,6 @@
             `;
         };
 
-        window.addEventListener('load', () => {
-            try { (window.adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {}
-        });
-
         window.startGuestMode = function(reason) {
             if (window.isGuestMode) return;
             window.isAuthReady = true; window.isGuestMode = true;
