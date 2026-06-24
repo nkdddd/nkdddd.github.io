@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>알파벳몬 도감</title>
+<style>
+  :root {
+    --ink:#23202b; --sub:#6b6577; --paper:#f3f1f7; --cardbg:#ffffff;
+  }
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .latin { font-family:"Arial Black","Helvetica Neue",Arial,sans-serif; }
+
+  header.top {
+    text-align:center; padding:40px 20px 10px;
+  }
+  header.top h1 {
+    margin:0; font-size:clamp(34px,6vw,60px); letter-spacing:-1px;
+    background:linear-gradient(90deg,#E5533C,#F2C12E,#4FB85F,#3FA0DC,#6C5CE7,#FF8FB8);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    font-weight:900;
+  }
+  header.top p { margin:8px 0 0; color:var(--sub); font-size:16px; }
+  .legend {
+    display:flex; flex-wrap:wrap; gap:10px 16px; justify-content:center;
+    max-width:920px; margin:18px auto 0; padding:0 16px;
+  }
+  .leg { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--sub); }
+  .leg i { width:13px; height:13px; border-radius:4px; display:inline-block; }
+
+  .grid {
+    display:grid; gap:22px; max-width:1180px; margin:28px auto 60px; padding:0 18px;
+    grid-template-columns:repeat(auto-fill,minmax(330px,1fr));
+  }
+
+  .card {
+    background:var(--cardbg); border:3px solid var(--type); border-radius:22px;
+    overflow:hidden; box-shadow:0 10px 26px rgba(35,32,43,.08);
+    display:flex; flex-direction:column;
+  }
+  .card-top {
+    display:flex; align-items:center; justify-content:space-between;
+    background:var(--type); padding:10px 14px;
+  }
+  .badge {
+    width:42px; height:42px; border-radius:50%; background:#fff;
+    color:var(--type); display:grid; place-items:center;
+    font-family:"Arial Black",sans-serif; font-size:24px; line-height:1;
+  }
+  .no { color:#fff; font-weight:800; font-size:14px; letter-spacing:.5px; opacity:.95; }
+
+  .hero {
+    position:relative; aspect-ratio:1/1;
+    background:color-mix(in srgb, var(--type) 14%, #fff);
+    display:grid; place-items:center; overflow:hidden;
+  }
+  .ghost-letter {
+    position:absolute; inset:0; display:grid; place-items:center;
+    font-family:"Arial Black",sans-serif; font-size:230px; line-height:1;
+    color:var(--type); opacity:.16; user-select:none;
+  }
+  .hero-img { position:relative; z-index:1; max-width:80%; max-height:80%;
+    object-fit:contain; filter:drop-shadow(0 8px 14px rgba(0,0,0,.18)); }
+  .hero-img.missing { display:none; }
+
+  .body { padding:16px 18px 18px; display:flex; flex-direction:column; gap:10px; }
+  .names { display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .names h2 { margin:0; font-size:23px; font-weight:900; }
+  .names h2 .ko { font-size:15px; font-weight:700; color:var(--sub); }
+  .learn {
+    margin:0; font-size:14px; color:#fff; background:var(--type);
+    padding:5px 12px; border-radius:999px; white-space:nowrap;
+  }
+  .learn b { font-family:"Arial Black",sans-serif; }
+  .title-line { margin:0; font-size:15px; font-weight:700; color:var(--type); }
+  .types { display:flex; gap:7px; }
+  .type { color:#fff; font-size:12px; font-weight:800; padding:4px 11px; border-radius:8px; }
+  .desc { margin:0; font-size:14px; line-height:1.6; color:#403b49; }
+
+  .evo {
+    display:flex; align-items:center; gap:6px; margin-top:4px;
+    background:color-mix(in srgb, var(--type) 8%, #fff);
+    border-radius:14px; padding:10px 8px;
+  }
+  .evo.single { justify-content:center; padding:12px; }
+  .solo-tag { font-size:13px; font-weight:800; color:var(--type); letter-spacing:1px; }
+  .evo-step { position:relative; flex:1; margin:0; text-align:center; }
+  .evo-img { width:100%; aspect-ratio:1/1; object-fit:contain; }
+  .evo-img.missing { display:none; }
+  .evo-ghost {
+    position:absolute; top:0; left:0; right:0; height:calc(100% - 16px);
+    display:grid; place-items:center; font-family:"Arial Black",sans-serif;
+    font-size:40px; color:var(--type); opacity:.18;
+  }
+  .evo-step figcaption { font-size:11px; color:var(--sub); margin-top:2px; }
+  .evo-arrow { width:0; height:0; border-top:6px solid transparent;
+    border-bottom:6px solid transparent; border-left:9px solid var(--type); opacity:.5; }
+
+  footer { text-align:center; color:var(--sub); font-size:13px; padding:0 20px 50px; }
+
+  @media print {
+    body { background:#fff; }
+    .legend, footer { display:none; }
+    .grid { grid-template-columns:repeat(2,1fr); gap:12px; margin:10px auto; }
+    .card { break-inside:avoid; box-shadow:none; }
+    header.top { padding:10px; }
+  }
+</style>
+</head>
+<body>
+  <header class="top">
+    <h1>알파벳몬 도감</h1>
+    <p>A부터 Z까지, 글자가 살아 움직이는 26글자 + 궁극의 오메가</p>
+    <div class="legend"><span class="leg"><i style="background:#F4B400"></i>빛</span><span class="leg"><i style="background:#B06CE8"></i>에스퍼</span><span class="leg"><i style="background:#8FC9F2"></i>비행</span><span class="leg"><i style="background:#6C5CE7"></i>드래곤</span><span class="leg"><i style="background:#FF8FB8"></i>페어리</span><span class="leg"><i style="background:#B7AE9E"></i>노말</span><span class="leg"><i style="background:#E5533C"></i>격투</span><span class="leg"><i style="background:#8E9CAB"></i>강철</span><span class="leg"><i style="background:#3FA0DC"></i>물</span><span class="leg"><i style="background:#FF7A3D"></i>불꽃</span><span class="leg"><i style="background:#F2C12E"></i>전기</span><span class="leg"><i style="background:#D49B53"></i>땅</span><span class="leg"><i style="background:#5B5466"></i>악</span><span class="leg"><i style="background:#B08F5E"></i>바위</span><span class="leg"><i style="background:#4FB85F"></i>풀</span><span class="leg"><i style="background:#7FDCD3"></i>얼음</span><span class="leg"><i style="background:#7E63A8"></i>고스트</span></div>
+  </header>
+  <main class="grid">
+<article class="card" style="--type:#F4B400">
+  <header class="card-top">
+    <span class="badge">A</span>
+    <span class="no">No.01</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">A</span>
+    <img class="hero-img" src="alphabetmon_images/00_god_A_알파몬.png" alt="00_god_A_알파몬" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Alphamon <span class="ko">(알파몬)</span></h2>
+      <p class="learn"><b>A</b> is for <b>Alpha</b></p>
+    </div>
+    <p class="title-line">창조의 신</p>
+    <div class="types"><span class="type" style="background:#F4B400">빛</span></div>
+    <p class="desc">알파벳의 첫 글자 A. 모든 글자를 처음 만든 빛의 신이에요. ‘Alpha(알파)’는 ‘맨 처음’이라는 뜻이래요.</p>
+    <div class="evo single"><span class="solo-tag">전설</span></div>
+  </div>
+</article>
+<article class="card" style="--type:#E5533C">
+  <header class="card-top">
+    <span class="badge">B</span>
+    <span class="no">No.02</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">B</span>
+    <img class="hero-img" src="alphabetmon_images/B_3_final_브라보곤.png" alt="B_3_final_브라보곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Bravogon <span class="ko">(브라보곤)</span></h2>
+      <p class="learn"><b>B</b> is for <b>Bravo</b></p>
+    </div>
+    <p class="title-line">용맹의 투사</p>
+    <div class="types"><span class="type" style="background:#E5533C">격투</span><span class="type" style="background:#8E9CAB">강철</span></div>
+    <p class="desc">글자 B. 용감하게 ‘Bravo(브라보)!’를 외치는 강철 주먹의 투사예요. B처럼 단단히 웅크려 공격을 막아내요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/B_1_baby_브라비.png" alt="B_1_baby_브라비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">B</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/B_2_mid_브라보.png" alt="B_2_mid_브라보" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">B</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/B_3_final_브라보곤.png" alt="B_3_final_브라보곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">B</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#3FA0DC">
+  <header class="card-top">
+    <span class="badge">C</span>
+    <span class="no">No.03</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">C</span>
+    <img class="hero-img" src="alphabetmon_images/C_3_final_코랄곤.png" alt="C_3_final_코랄곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Coralgon <span class="ko">(코랄곤)</span></h2>
+      <p class="learn"><b>C</b> is for <b>Coral</b></p>
+    </div>
+    <p class="title-line">산호바다의 용</p>
+    <div class="types"><span class="type" style="background:#3FA0DC">물</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 C. ‘Coral(코랄)’은 산호라는 뜻이에요. C처럼 휘어진 몸으로 바닷속 소용돌이를 만들어요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/C_1_baby_코비.png" alt="C_1_baby_코비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">C</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/C_2_mid_코랄.png" alt="C_2_mid_코랄" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">C</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/C_3_final_코랄곤.png" alt="C_3_final_코랄곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">C</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#D49B53">
+  <header class="card-top">
+    <span class="badge">D</span>
+    <span class="no">No.04</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">D</span>
+    <img class="hero-img" src="alphabetmon_images/D_3_final_드레이크곤.png" alt="D_3_final_드레이크곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Drakegon <span class="ko">(드레이크곤)</span></h2>
+      <p class="learn"><b>D</b> is for <b>Drake</b></p>
+    </div>
+    <p class="title-line">대지의 새끼용</p>
+    <div class="types"><span class="type" style="background:#D49B53">땅</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 D. ‘Drake(드레이크)’는 어린 용이에요. D처럼 둥근 등으로 바위도 막아내요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/D_1_baby_드레비.png" alt="D_1_baby_드레비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">D</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/D_2_mid_드레이크.png" alt="D_2_mid_드레이크" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">D</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/D_3_final_드레이크곤.png" alt="D_3_final_드레이크곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">D</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#B06CE8">
+  <header class="card-top">
+    <span class="badge">E</span>
+    <span class="no">No.05</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">E</span>
+    <img class="hero-img" src="alphabetmon_images/00_god_E_에코몬.png" alt="00_god_E_에코몬" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Echomon <span class="ko">(에코몬)</span></h2>
+      <p class="learn"><b>E</b> is for <b>Echo</b></p>
+    </div>
+    <p class="title-line">지혜의 신</p>
+    <div class="types"><span class="type" style="background:#B06CE8">에스퍼</span></div>
+    <p class="desc">글자 E. 세상의 모든 말과 지식을 다스리는 지혜의 신이에요. ‘Echo(에코)’는 메아리처럼 지식을 멀리 퍼뜨려요.</p>
+    <div class="evo single"><span class="solo-tag">전설</span></div>
+  </div>
+</article>
+<article class="card" style="--type:#FF7A3D">
+  <header class="card-top">
+    <span class="badge">F</span>
+    <span class="no">No.06</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">F</span>
+    <img class="hero-img" src="alphabetmon_images/F_3_final_플레어곤.png" alt="F_3_final_플레어곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Flaregon <span class="ko">(플레어곤)</span></h2>
+      <p class="learn"><b>F</b> is for <b>Flare</b></p>
+    </div>
+    <p class="title-line">불꽃의 날개</p>
+    <div class="types"><span class="type" style="background:#FF7A3D">불꽃</span><span class="type" style="background:#8FC9F2">비행</span></div>
+    <p class="desc">글자 F. ‘Flare(플레어)’는 활활 타는 불길이에요. F 모양 날개에서 불씨를 흩뿌리며 날아요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/F_1_baby_플레비.png" alt="F_1_baby_플레비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">F</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/F_2_mid_플레어.png" alt="F_2_mid_플레어" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">F</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/F_3_final_플레어곤.png" alt="F_3_final_플레어곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">F</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#F2C12E">
+  <header class="card-top">
+    <span class="badge">G</span>
+    <span class="no">No.07</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">G</span>
+    <img class="hero-img" src="alphabetmon_images/G_3_final_감마곤.png" alt="G_3_final_감마곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Gammagon <span class="ko">(감마곤)</span></h2>
+      <p class="learn"><b>G</b> is for <b>Gamma</b></p>
+    </div>
+    <p class="title-line">감마선의 용</p>
+    <div class="types"><span class="type" style="background:#F2C12E">전기</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 G. ‘Gamma(감마)’라는 강한 에너지를 다뤄요. G처럼 말린 꼬리에 번개를 모아요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/G_1_baby_감비.png" alt="G_1_baby_감비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">G</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/G_2_mid_감마.png" alt="G_2_mid_감마" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">G</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/G_3_final_감마곤.png" alt="G_3_final_감마곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">G</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#8FC9F2">
+  <header class="card-top">
+    <span class="badge">H</span>
+    <span class="no">No.08</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">H</span>
+    <img class="hero-img" src="alphabetmon_images/H_3_final_허리케곤.png" alt="H_3_final_허리케곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Hurricagon <span class="ko">(허리케곤)</span></h2>
+      <p class="learn"><b>H</b> is for <b>Hurricane</b></p>
+    </div>
+    <p class="title-line">폭풍의 지배자</p>
+    <div class="types"><span class="type" style="background:#8FC9F2">비행</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 H. ‘Hurricane(허리케인)’은 거대한 폭풍이에요. H처럼 두 다리로 버티며 강풍을 일으켜요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/H_1_baby_허리비.png" alt="H_1_baby_허리비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">H</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/H_2_mid_허리케인.png" alt="H_2_mid_허리케인" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">H</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/H_3_final_허리케곤.png" alt="H_3_final_허리케곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">H</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#B06CE8">
+  <header class="card-top">
+    <span class="badge">I</span>
+    <span class="no">No.09</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">I</span>
+    <img class="hero-img" src="alphabetmon_images/00_god_I_아이리스몬.png" alt="00_god_I_아이리스몬" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Irismon <span class="ko">(아이리스몬)</span></h2>
+      <p class="learn"><b>I</b> is for <b>Iris</b></p>
+    </div>
+    <p class="title-line">예언의 신</p>
+    <div class="types"><span class="type" style="background:#B06CE8">에스퍼</span><span class="type" style="background:#8FC9F2">비행</span></div>
+    <p class="desc">글자 I. 미래를 보는 눈을 가진 예언의 신이에요. ‘Iris(아이리스)’는 무지개를 타고 하늘을 날아요.</p>
+    <div class="evo single"><span class="solo-tag">전설</span></div>
+  </div>
+</article>
+<article class="card" style="--type:#4FB85F">
+  <header class="card-top">
+    <span class="badge">J</span>
+    <span class="no">No.10</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">J</span>
+    <img class="hero-img" src="alphabetmon_images/J_3_final_정글곤.png" alt="J_3_final_정글곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Junglegon <span class="ko">(정글곤)</span></h2>
+      <p class="learn"><b>J</b> is for <b>Jungle</b></p>
+    </div>
+    <p class="title-line">밀림의 군주</p>
+    <div class="types"><span class="type" style="background:#4FB85F">풀</span><span class="type" style="background:#D49B53">땅</span></div>
+    <p class="desc">글자 J. ‘Jungle(정글)’은 깊은 밀림이에요. J처럼 휘어진 꼬리로 나무를 휘감아요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/J_1_baby_정비.png" alt="J_1_baby_정비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">J</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/J_2_mid_정글.png" alt="J_2_mid_정글" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">J</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/J_3_final_정글곤.png" alt="J_3_final_정글곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">J</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#E5533C">
+  <header class="card-top">
+    <span class="badge">K</span>
+    <span class="no">No.11</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">K</span>
+    <img class="hero-img" src="alphabetmon_images/K_3_final_카이저곤.png" alt="K_3_final_카이저곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Kaisergon <span class="ko">(카이저곤)</span></h2>
+      <p class="learn"><b>K</b> is for <b>Kaiser</b></p>
+    </div>
+    <p class="title-line">격투의 황제</p>
+    <div class="types"><span class="type" style="background:#E5533C">격투</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 K. ‘Kaiser(카이저)’는 황제라는 뜻이에요. K처럼 뻗은 팔다리로 강력한 발차기를 해요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/K_1_baby_카이비.png" alt="K_1_baby_카이비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">K</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/K_2_mid_카이저.png" alt="K_2_mid_카이저" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">K</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/K_3_final_카이저곤.png" alt="K_3_final_카이저곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">K</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#7FDCD3">
+  <header class="card-top">
+    <span class="badge">L</span>
+    <span class="no">No.12</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">L</span>
+    <img class="hero-img" src="alphabetmon_images/L_3_final_루나곤.png" alt="L_3_final_루나곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Lunagon <span class="ko">(루나곤)</span></h2>
+      <p class="learn"><b>L</b> is for <b>Luna</b></p>
+    </div>
+    <p class="title-line">달빛의 정령</p>
+    <div class="types"><span class="type" style="background:#7FDCD3">얼음</span><span class="type" style="background:#FF8FB8">페어리</span></div>
+    <p class="desc">글자 L. ‘Luna(루나)’는 달이에요. L처럼 꺾인 몸에서 차가운 달빛 서리를 퍼뜨려요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/L_1_baby_루나비.png" alt="L_1_baby_루나비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">L</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/L_2_mid_루나.png" alt="L_2_mid_루나" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">L</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/L_3_final_루나곤.png" alt="L_3_final_루나곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">L</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#8E9CAB">
+  <header class="card-top">
+    <span class="badge">M</span>
+    <span class="no">No.13</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">M</span>
+    <img class="hero-img" src="alphabetmon_images/M_3_final_메탈곤.png" alt="M_3_final_메탈곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Metalgon <span class="ko">(메탈곤)</span></h2>
+      <p class="learn"><b>M</b> is for <b>Metal</b></p>
+    </div>
+    <p class="title-line">강철의 거룡</p>
+    <div class="types"><span class="type" style="background:#8E9CAB">강철</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 M. ‘Metal(메탈)’은 금속이에요. M처럼 두 봉우리 솟은 등이 튼튼한 방패가 돼요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/M_1_baby_메탈비.png" alt="M_1_baby_메탈비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">M</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/M_2_mid_메탈.png" alt="M_2_mid_메탈" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">M</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/M_3_final_메탈곤.png" alt="M_3_final_메탈곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">M</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#5B5466">
+  <header class="card-top">
+    <span class="badge">N</span>
+    <span class="no">No.14</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">N</span>
+    <img class="hero-img" src="alphabetmon_images/N_3_final_나이트곤.png" alt="N_3_final_나이트곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Nightgon <span class="ko">(나이트곤)</span></h2>
+      <p class="learn"><b>N</b> is for <b>Night</b></p>
+    </div>
+    <p class="title-line">밤의 추적자</p>
+    <div class="types"><span class="type" style="background:#5B5466">악</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 N. ‘Night(나이트)’는 밤이에요. N처럼 꺾인 자세로 어둠 속을 미끄러져요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/N_1_baby_나이비.png" alt="N_1_baby_나이비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">N</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/N_2_mid_나이트.png" alt="N_2_mid_나이트" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">N</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/N_3_final_나이트곤.png" alt="N_3_final_나이트곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">N</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#6C5CE7">
+  <header class="card-top">
+    <span class="badge">O</span>
+    <span class="no">No.15</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">O</span>
+    <img class="hero-img" src="alphabetmon_images/00_god_O_오르비스몬.png" alt="00_god_O_오르비스몬" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Orbismon <span class="ko">(오르비스몬)</span></h2>
+      <p class="learn"><b>O</b> is for <b>Orbis</b></p>
+    </div>
+    <p class="title-line">시간의 신</p>
+    <div class="types"><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 O. 시간과 차원을 잇는 시간의 신이에요. ‘Orbis(오르비스)’는 동그란 O처럼 시간을 돌고 돌게 해요.</p>
+    <div class="evo single"><span class="solo-tag">전설</span></div>
+  </div>
+</article>
+<article class="card" style="--type:#FF7A3D">
+  <header class="card-top">
+    <span class="badge">P</span>
+    <span class="no">No.16</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">P</span>
+    <img class="hero-img" src="alphabetmon_images/P_3_final_피닉곤.png" alt="P_3_final_피닉곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Phoenigon <span class="ko">(피닉곤)</span></h2>
+      <p class="learn"><b>P</b> is for <b>Phoenix</b></p>
+    </div>
+    <p class="title-line">불사조</p>
+    <div class="types"><span class="type" style="background:#FF7A3D">불꽃</span><span class="type" style="background:#FF8FB8">페어리</span></div>
+    <p class="desc">글자 P. ‘Phoenix(피닉스)’는 다시 태어나는 불사조예요. P 모양 머리깃에서 치유의 불꽃이 일어요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/P_1_baby_피닉비.png" alt="P_1_baby_피닉비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">P</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/P_2_mid_피닉스.png" alt="P_2_mid_피닉스" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">P</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/P_3_final_피닉곤.png" alt="P_3_final_피닉곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">P</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#7E63A8">
+  <header class="card-top">
+    <span class="badge">Q</span>
+    <span class="no">No.17</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">Q</span>
+    <img class="hero-img" src="alphabetmon_images/Q_3_final_퀘이사곤.png" alt="Q_3_final_퀘이사곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Quasagon <span class="ko">(퀘이사곤)</span></h2>
+      <p class="learn"><b>Q</b> is for <b>Quasar</b></p>
+    </div>
+    <p class="title-line">심연의 별</p>
+    <div class="types"><span class="type" style="background:#7E63A8">고스트</span><span class="type" style="background:#B06CE8">에스퍼</span></div>
+    <p class="desc">글자 Q. ‘Quasar(퀘이사)’는 먼 우주에서 빛나는 별이에요. Q의 꼬리에서 신비한 빛을 흘려요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Q_1_baby_퀘이비.png" alt="Q_1_baby_퀘이비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Q</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Q_2_mid_퀘이사.png" alt="Q_2_mid_퀘이사" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Q</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Q_3_final_퀘이사곤.png" alt="Q_3_final_퀘이사곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Q</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#B06CE8">
+  <header class="card-top">
+    <span class="badge">R</span>
+    <span class="no">No.18</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">R</span>
+    <img class="hero-img" src="alphabetmon_images/R_3_final_레이곤.png" alt="R_3_final_레이곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Raygon <span class="ko">(레이곤)</span></h2>
+      <p class="learn"><b>R</b> is for <b>Ray</b></p>
+    </div>
+    <p class="title-line">광선의 현자</p>
+    <div class="types"><span class="type" style="background:#B06CE8">에스퍼</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 R. ‘Ray(레이)’는 빛줄기예요. R처럼 굽은 등에서 정신의 광선을 쏴요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/R_1_baby_레이비.png" alt="R_1_baby_레이비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">R</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/R_2_mid_레이.png" alt="R_2_mid_레이" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">R</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/R_3_final_레이곤.png" alt="R_3_final_레이곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">R</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#3FA0DC">
+  <header class="card-top">
+    <span class="badge">S</span>
+    <span class="no">No.19</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">S</span>
+    <img class="hero-img" src="alphabetmon_images/S_3_final_스톰곤.png" alt="S_3_final_스톰곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Stormgon <span class="ko">(스톰곤)</span></h2>
+      <p class="learn"><b>S</b> is for <b>Storm</b></p>
+    </div>
+    <p class="title-line">폭풍우의 전령</p>
+    <div class="types"><span class="type" style="background:#3FA0DC">물</span><span class="type" style="background:#8FC9F2">비행</span></div>
+    <p class="desc">글자 S. ‘Storm(스톰)’은 폭풍우예요. S처럼 굽이치는 몸으로 파도와 바람을 함께 다뤄요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/S_1_baby_스톰비.png" alt="S_1_baby_스톰비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">S</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/S_2_mid_스톰.png" alt="S_2_mid_스톰" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">S</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/S_3_final_스톰곤.png" alt="S_3_final_스톰곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">S</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#B08F5E">
+  <header class="card-top">
+    <span class="badge">T</span>
+    <span class="no">No.20</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">T</span>
+    <img class="hero-img" src="alphabetmon_images/T_3_final_타이탄곤.png" alt="T_3_final_타이탄곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Titangon <span class="ko">(타이탄곤)</span></h2>
+      <p class="learn"><b>T</b> is for <b>Titan</b></p>
+    </div>
+    <p class="title-line">거석의 거인</p>
+    <div class="types"><span class="type" style="background:#B08F5E">바위</span><span class="type" style="background:#8E9CAB">강철</span></div>
+    <p class="desc">글자 T. ‘Titan(타이탄)’은 거대한 거인이에요. T처럼 우뚝 선 몸이 산처럼 단단해요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/T_1_baby_타이비.png" alt="T_1_baby_타이비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">T</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/T_2_mid_타이탄.png" alt="T_2_mid_타이탄" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">T</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/T_3_final_타이탄곤.png" alt="T_3_final_타이탄곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">T</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#FF8FB8">
+  <header class="card-top">
+    <span class="badge">U</span>
+    <span class="no">No.21</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">U</span>
+    <img class="hero-img" src="alphabetmon_images/00_god_U_유니콘몬.png" alt="00_god_U_유니콘몬" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Unicornmon <span class="ko">(유니콘몬)</span></h2>
+      <p class="learn"><b>U</b> is for <b>Unicorn</b></p>
+    </div>
+    <p class="title-line">생명의 신</p>
+    <div class="types"><span class="type" style="background:#FF8FB8">페어리</span></div>
+    <p class="desc">글자 U. 모든 생명을 치유하는 생명의 신이에요. ‘Unicorn(유니콘)’은 U자 뿔로 상처를 낫게 해요.</p>
+    <div class="evo single"><span class="solo-tag">전설</span></div>
+  </div>
+</article>
+<article class="card" style="--type:#F2C12E">
+  <header class="card-top">
+    <span class="badge">V</span>
+    <span class="no">No.22</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">V</span>
+    <img class="hero-img" src="alphabetmon_images/V_3_final_볼트곤.png" alt="V_3_final_볼트곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Voltgon <span class="ko">(볼트곤)</span></h2>
+      <p class="learn"><b>V</b> is for <b>Volt</b></p>
+    </div>
+    <p class="title-line">번개의 검</p>
+    <div class="types"><span class="type" style="background:#F2C12E">전기</span><span class="type" style="background:#8E9CAB">강철</span></div>
+    <p class="desc">글자 V. ‘Volt(볼트)’는 전기의 힘이에요. V처럼 갈라진 뿔에서 번개가 튀어요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/V_1_baby_볼트비.png" alt="V_1_baby_볼트비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">V</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/V_2_mid_볼트.png" alt="V_2_mid_볼트" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">V</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/V_3_final_볼트곤.png" alt="V_3_final_볼트곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">V</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#3FA0DC">
+  <header class="card-top">
+    <span class="badge">W</span>
+    <span class="no">No.23</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">W</span>
+    <img class="hero-img" src="alphabetmon_images/W_3_final_웨이브곤.png" alt="W_3_final_웨이브곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Wavegon <span class="ko">(웨이브곤)</span></h2>
+      <p class="learn"><b>W</b> is for <b>Wave</b></p>
+    </div>
+    <p class="title-line">파도의 용</p>
+    <div class="types"><span class="type" style="background:#3FA0DC">물</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">글자 W. ‘Wave(웨이브)’는 파도예요. W처럼 굽이치는 등지느러미로 거대한 해일을 만들어요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/W_1_baby_웨이비.png" alt="W_1_baby_웨이비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">W</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/W_2_mid_웨이브.png" alt="W_2_mid_웨이브" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">W</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/W_3_final_웨이브곤.png" alt="W_3_final_웨이브곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">W</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#B06CE8">
+  <header class="card-top">
+    <span class="badge">X</span>
+    <span class="no">No.24</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">X</span>
+    <img class="hero-img" src="alphabetmon_images/X_3_final_엑시온.png" alt="X_3_final_엑시온" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Xion <span class="ko">(엑시온)</span></h2>
+      <p class="learn"><b>X</b> is for <b>Xeno</b></p>
+    </div>
+    <p class="title-line">미지의 존재</p>
+    <div class="types"><span class="type" style="background:#B06CE8">에스퍼</span><span class="type" style="background:#5B5466">악</span></div>
+    <p class="desc">글자 X. ‘Xeno(제노)’는 ‘낯설다’는 뜻이에요. X처럼 교차한 팔다리에서 알 수 없는 힘이 흘러요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/X_1_baby_엑시비.png" alt="X_1_baby_엑시비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">X</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/X_2_mid_엑소.png" alt="X_2_mid_엑소" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">X</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/X_3_final_엑시온.png" alt="X_3_final_엑시온" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">X</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#FF8FB8">
+  <header class="card-top">
+    <span class="badge">Y</span>
+    <span class="no">No.25</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">Y</span>
+    <img class="hero-img" src="alphabetmon_images/Y_3_final_요타곤.png" alt="Y_3_final_요타곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Yotagon <span class="ko">(요타곤)</span></h2>
+      <p class="learn"><b>Y</b> is for <b>Yota</b></p>
+    </div>
+    <p class="title-line">빛가루의 요정</p>
+    <div class="types"><span class="type" style="background:#FF8FB8">페어리</span><span class="type" style="background:#8FC9F2">비행</span></div>
+    <p class="desc">글자 Y. ‘Yotta(요타)’는 엄청나게 큰 수예요. Y처럼 뻗은 날개에서 셀 수 없이 많은 빛가루를 뿌려요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Y_1_baby_요타비.png" alt="Y_1_baby_요타비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Y</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Y_2_mid_요타.png" alt="Y_2_mid_요타" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Y</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Y_3_final_요타곤.png" alt="Y_3_final_요타곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Y</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#6C5CE7">
+  <header class="card-top">
+    <span class="badge">Z</span>
+    <span class="no">No.26</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">Z</span>
+    <img class="hero-img" src="alphabetmon_images/Z_3_final_제타곤.png" alt="Z_3_final_제타곤" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Zetagon <span class="ko">(제타곤)</span></h2>
+      <p class="learn"><b>Z</b> is for <b>Zeta</b></p>
+    </div>
+    <p class="title-line">종결의 용</p>
+    <div class="types"><span class="type" style="background:#6C5CE7">드래곤</span><span class="type" style="background:#F2C12E">전기</span></div>
+    <p class="desc">글자 Z. ‘Zeta(제타)’는 그리스 문자예요. 알파벳의 끝 Z처럼 마지막에 나타나 번개를 내리쳐요.</p>
+    <div class="evo"><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Z_1_baby_제타비.png" alt="Z_1_baby_제타비" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Z</span><figcaption>1단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Z_2_mid_제타.png" alt="Z_2_mid_제타" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Z</span><figcaption>2단계</figcaption></figure><span class="evo-arrow"></span><figure class="evo-step"><img class="evo-img" src="alphabetmon_images/Z_3_final_제타곤.png" alt="Z_3_final_제타곤" loading="lazy" onerror="this.classList.add('missing')"><span class="evo-ghost">Z</span><figcaption>최종</figcaption></figure></div>
+  </div>
+</article>
+<article class="card" style="--type:#F4B400">
+  <header class="card-top">
+    <span class="badge">Ω</span>
+    <span class="no">No.27</span>
+  </header>
+  <div class="hero">
+    <span class="ghost-letter">Ω</span>
+    <img class="hero-img" src="alphabetmon_images/99_OMEGA_알파벳몬오메가.png" alt="99_OMEGA_알파벳몬오메가" loading="lazy" onerror="this.classList.add('missing')">
+  </div>
+  <div class="body">
+    <div class="names">
+      <h2>Alphabetmon Omega <span class="ko">(알파벳몬 오메가)</span></h2>
+      <p class="learn"><b>Ω</b> is for <b>Omega</b></p>
+    </div>
+    <p class="title-line">궁극의 알파벳몬</p>
+    <div class="types"><span class="type" style="background:#F4B400">빛</span><span class="type" style="background:#6C5CE7">드래곤</span></div>
+    <p class="desc">모든 글자가 하나로 합쳐졌을 때 나타나는 궁극의 존재. A부터 Z까지 26글자의 힘을 모두 담고 있어요.</p>
+    <div class="evo single"><span class="solo-tag">최종보스</span></div>
+  </div>
+</article>
+  </main>
+  <footer>이미지는 같은 폴더의 <b>alphabetmon_images</b> 안 파일을 자동으로 불러옵니다. 인쇄: 브라우저에서 Ctrl/⌘+P → 대상을 PDF로 저장.</footer>
+</body>
+</html>
