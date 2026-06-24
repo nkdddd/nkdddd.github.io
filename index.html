@@ -42,7 +42,6 @@
         @keyframes mythic-glow { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
         @keyframes pump { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
         .animate-pump { animation: pump 0.1s ease-out; }
-        @keyframes shine { 100% { left: 125%; } } 
         
         details > summary { list-style: none; outline: none; }
         details > summary::-webkit-details-marker { display: none; }
@@ -71,30 +70,12 @@
         <p>파닉스 몬스터는 알파벳 A부터 Z, 모음과 자음의 원어민 발음을 재미있게 배우는 에듀테크 웹앱입니다. 퀴즈를 풀고 코인을 모아 전설의 포켓몬 카드를 수집하세요! 친구와 카드를 거래하고 진화의 제단에서 확률 게임을 즐길 수 있습니다.</p>
     </div>
 
+    <!-- 앱 전체 컨테이너 (고정 레이아웃 바 삭제됨) -->
     <div id="main-wrapper" class="relative w-full max-w-md h-full bg-slate-50 flex flex-col shadow-2xl overflow-hidden mx-auto">
         <div id="app" class="flex-1 w-full flex flex-col overflow-hidden relative">
             <div class="flex-1 flex flex-col items-center justify-center bg-blue-500 text-white font-black text-2xl h-full">
                 <i class="fa-solid fa-spinner fa-spin text-5xl mb-4"></i> 서버 로딩 중...
             </div>
-        </div>
-        
-        <!-- 하단 유튜브 커스텀 광고 -->
-        <div id="global-ad" class="w-full bg-slate-100 border-t border-gray-300 shrink-0 h-[65px] pb-safe relative z-[999] overflow-hidden block">
-            <a href="https://youtube.com/channel/UCYTmPgr--s2x3hJW14wDx_g?si=DeqwKVK4kXz2nHYi" target="_blank" class="w-full h-full bg-gradient-to-r from-red-600 to-red-500 flex items-center justify-between px-5 text-white no-underline relative overflow-hidden group flex-row">
-                <div class="absolute top-0 -left-[100%] h-full w-1/2 z-0 block transform -skew-x-12 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 group-hover:animate-[shine_1.5s_infinite]"></div>
-                <div class="flex items-center gap-3 relative z-10 h-full w-full py-2">
-                    <div class="bg-white text-red-600 w-11 h-11 rounded-full flex items-center justify-center text-2xl shadow-lg shrink-0 group-active:scale-95 transition-transform">
-                        <i class="fa-brands fa-youtube"></i>
-                    </div>
-                    <div class="flex flex-col justify-center flex-1">
-                        <span class="font-black text-[15px] tracking-wide drop-shadow-md">파닉스 AI영어</span>
-                        <span class="text-[10px] font-bold text-red-100 opacity-95">유익한 파닉스 영상 보러가기! 👆</span>
-                    </div>
-                    <div class="bg-white/20 px-3 py-1.5 rounded-full text-xs font-black border border-white/40 backdrop-blur-sm shadow-sm shrink-0 flex items-center gap-1 group-active:scale-95 transition-transform">
-                        <i class="fa-solid fa-play text-[10px]"></i> GO
-                    </div>
-                </div>
-            </a>
         </div>
     </div>
 
@@ -102,6 +83,8 @@
         // =========================================================================
         // 1. 시스템 설정 (파이어베이스)
         // =========================================================================
+        
+        // 🚨🚨🚨 선생님, 아래 firebaseConfig를 반드시 선생님의 주소로 덮어씌워 주세요! 🚨🚨🚨
         const firebaseConfig = {
             apiKey: "AIzaSyBC5ffBjfAuLmq_Dg-J9XFOp6y7lzdhHYI",
             authDomain: "phonicsmonster-2d495.firebaseapp.com",
@@ -231,7 +214,7 @@
         };
 
         // =========================================================================
-        // 3. 자체 통합 모달 시스템
+        // 3. 🚨 안전한 자체 모달 팝업 시스템
         // =========================================================================
         window.openCustomPrompt = function(message, hasInput, actionType, payload) {
             window.state.customPrompt = { message, hasInput, actionType, payload };
@@ -292,7 +275,6 @@
                             coins: firebase.firestore.FieldValue.increment(item.price)
                         }).catch(e => console.log(e));
                         await db.collection("market").doc(item.id).delete();
-                        
                         window.showToast("구매 성공! 도감에 추가되었습니다.");
                         window.loadSocialData();
                     }
@@ -478,7 +460,7 @@
         };
 
         // =========================================================================
-        // 6. 소셜, 상점, 진화(제단) 시스템
+        // 6. 소셜, 상점, 진화 시스템 및 유틸
         // =========================================================================
         window.changeTab = function(tab) {
             window.state.tab = tab;
@@ -617,7 +599,7 @@
             window.openCustomPrompt(`${sellerName}님의 ${item.card.kr} 카드를 ${item.price}코인에 구매하시겠습니까?`, false, 'BUY_MARKET', marketId);
         };
 
-        // 🟢 🚨 제단 로직 완벽 수정 🚨 🟢
+        // 🟢 제단 기능 🟢
         window.selectForAltar = function(id) {
             if(window.state.altarSelection.includes(id)) { window.state.altarSelection = window.state.altarSelection.filter(x => x !== id); } 
             else {
@@ -667,14 +649,15 @@
             if(btn) { btn.style.transform = 'scale(0.9)'; setTimeout(()=>btn.style.transform='scale(1)', 50); }
         };
 
-        // 🚨 방패(카드보호) 시 카드가 삭제되지 않도록 순서 버그 해결 🚨
         window.tryEvolve = async function() {
             window.state.isProcessing = true; window.render();
-            
             const cardId = window.state.altarSelection[0];
             const baseCard = window.state.inventory.find(c => c.id === cardId);
             const grade = baseCard.grade;
 
+            window.state.inventory = window.state.inventory.filter(c => !window.state.altarSelection.includes(c.id));
+            window.state.altarSelection = [];
+            
             let baseRate = 0.60; let nextGrade = 'SUPER'; let pokeIdList = NORMAL_POKE_IDS;
             if (grade === 'SUPER') { baseRate = 0.40; nextGrade = 'LEGEND'; pokeIdList = LEGEND_IDS; }
             if (grade === 'LEGEND') { baseRate = 0.30; nextGrade = 'MYTHIC'; pokeIdList = MYTHIC_IDS; }
@@ -686,10 +669,6 @@
 
             try {
                 if(Math.random() < finalRate) { 
-                    // 1) 대성공: 이제 카드를 지우고 새 카드를 추가합니다.
-                    window.state.inventory = window.state.inventory.filter(c => !window.state.altarSelection.includes(c.id));
-                    window.state.altarSelection = [];
-                    
                     const randomId = pokeIdList[Math.floor(Math.random() * pokeIdList.length)];
                     const poke = await fetchPokemon(randomId);
                     const newCard = { id: Date.now().toString(), grade: nextGrade, ...poke };
@@ -698,14 +677,10 @@
                     window.state.packOpening = true; 
                     window.showToast(`✨ 합성 대성공! (확률 ${Math.floor(finalRate*100)}% 적용)`);
                     window.speak(poke.w);
-                    
                     window.state.isProcessing = false; window.state.clickCount = 0; 
                     window.saveData(); window.render();
                 } else {
                     if (isProtected) {
-                        // 2) 실패지만 방어 성공: 카드를 지우지 않고 제단 선택만 해제합니다.
-                        window.state.altarSelection = [];
-                        
                         window.state.isFailingProtected = true; window.render();
                         setTimeout(() => {
                             window.state.isFailingProtected = false; window.showToast("휴~ 🛡️ 터치 보호막 덕분에 카드를 지켰어요!");
@@ -713,10 +688,6 @@
                             window.saveData(); window.render();
                         }, 2500);
                     } else {
-                        // 3) 완전 실패: 방어 실패로 카드를 지웁니다.
-                        window.state.inventory = window.state.inventory.filter(c => !window.state.altarSelection.includes(c.id));
-                        window.state.altarSelection = [];
-                        
                         window.state.isFailing = true; window.render();
                         setTimeout(() => {
                             window.state.isFailing = false; window.showToast("💥 합성 실패... 카드가 모두 사라졌습니다.");
@@ -952,6 +923,7 @@
             `;
         };
 
+        // 🚨 제단 레이아웃 보호: shrink-0 추가 🚨
         window.renderAltar = function() {
             if (window.state.isClickingMode) {
                 const targetClicks = 11;
@@ -1007,19 +979,19 @@
             let altarStatusMsg = "A급 이상 카드 2장을 골라주세요!<br><span class='text-blue-500'>(등급에 따라 전설, 환상 등장! 실패 시 소멸 💥)</span>";
             if (selectedCards.length > 0) {
                 const grade = selectedCards[0].grade;
-                if(grade === 'RARE') altarStatusMsg = "기본 성공률: 60% <b class='text-yellow-600'>(광클 시 증가 & 11번 터치 시 파괴 방지!)</b>";
-                if(grade === 'SUPER') altarStatusMsg = "기본 성공률: 40% <b class='text-red-500'>(광클 시 증가 & 11번 터치 시 파괴 방지!)</b>";
-                if(grade === 'LEGEND') altarStatusMsg = "기본 성공률: 30% <b class='text-purple-500'>(광클 시 증가 & 11번 터치 시 파괴 방지!)</b>";
+                if(grade === 'RARE') altarStatusMsg = "기본 성공률: 60% <br><b class='text-yellow-600'>(광클 시 ⬆ & 11번 터치 시 파괴 방지!)</b>";
+                if(grade === 'SUPER') altarStatusMsg = "기본 성공률: 40% <br><b class='text-red-500'>(광클 시 ⬆ & 11번 터치 시 파괴 방지!)</b>";
+                if(grade === 'LEGEND') altarStatusMsg = "기본 성공률: 30% <br><b class='text-purple-500'>(광클 시 ⬆ & 11번 터치 시 파괴 방지!)</b>";
             }
 
             return `
                 <div class="p-6 flex flex-col h-full w-full relative">
-                    <div class="text-center mb-6">
+                    <div class="text-center mb-6 shrink-0">
                         <div class="text-5xl mb-2 animate-pulse">⚡</div>
                         <h2 class="text-2xl font-black text-slate-800">진화의 제단</h2>
                         <p class="text-[11px] text-slate-500 font-bold mt-2 leading-tight">${altarStatusMsg}</p>
                     </div>
-                    <div class="flex justify-center gap-4 mb-6">
+                    <div class="flex justify-center gap-4 mb-6 shrink-0">
                         ${[0, 1].map(i => `
                             <div class="w-24 h-32 rounded-2xl border-4 border-dashed flex items-center justify-center bg-white shadow-inner overflow-hidden ${selectedCards[i] ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'}">
                                 ${selectedCards[i] ? (selectedCards[i].imgUrl ? `<img src="${selectedCards[i].imgUrl}" class="w-16 h-16 object-contain" />` : `<div class="text-4xl">${selectedCards[i].emoji}</div>`) : `<span class="text-gray-300 font-bold">카드 ${i+1}</span>`}
@@ -1027,7 +999,7 @@
                         `).join('')}
                     </div>
                     ${window.state.altarSelection.length === 2 ? `
-                        <button onclick="window.startClickEvent()" class="relative overflow-hidden w-full bg-yellow-400 text-yellow-900 font-black text-xl py-4 rounded-2xl mb-4 shadow-[0_5px_0_#ca8a04] active:translate-y-1 active:shadow-none animate-bounce">
+                        <button onclick="window.startClickEvent()" class="relative overflow-hidden w-full bg-yellow-400 text-yellow-900 font-black text-xl py-4 rounded-2xl mb-4 shadow-[0_5px_0_#ca8a04] active:translate-y-1 active:shadow-none animate-bounce shrink-0">
                             ${window.state.isProcessing ? '<div class="absolute inset-0 bg-black/20 flex items-center justify-center"><i class="fa-solid fa-spinner fa-spin text-white"></i></div>' : ''}
                             포켓몬 진화 시작!
                         </button>
@@ -1225,7 +1197,7 @@
                 ${!u.inventory || u.inventory.length === 0 ? '<div class="text-center text-gray-400 mt-5 font-bold">수집한 카드가 없습니다.</div>' : `
                 <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; padding-bottom: 1rem;">
                     ${u.inventory.slice().reverse().map(item => `
-                        <div class="${window.getCardGradeStyle(item.grade)} aspect-[3/4] rounded-2xl p-2 flex flex-col items-center justify-between relative overflow-hidden shadow-sm" onclick="window.speak('${item.w}')">
+                        <div class="${window.getCardGradeStyle(item.grade)} rounded-2xl p-2 flex flex-col items-center justify-between relative overflow-hidden shadow-sm" style="aspect-ratio: 3/4;" onclick="window.speak('${item.w}')">
                             ${window.getSmallBadge(item.grade)}
                             <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 0.75rem;">
                                 ${item.imgUrl ? `<img src="${item.imgUrl}" style="width: 2.5rem; height: 2.5rem; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));" />` : `<div style="font-size: 1.5rem; line-height: 2rem; z-index: 10;">${item.emoji}</div>`}
@@ -1384,6 +1356,16 @@
                 <main class="flex-1 overflow-y-auto overflow-x-hidden relative bg-slate-50 w-full hide-scrollbar flex flex-col" id="main-content">
                     ${contentHtml}
                 </main>
+
+                <!-- 🟢 플로팅 유튜브 커스텀 버튼 (레이아웃 보호) 🟢 -->
+                <a href="https://youtube.com/channel/UCYTmPgr--s2x3hJW14wDx_g?si=DeqwKVK4kXz2nHYi" target="_blank"
+                   class="fixed bottom-20 right-4 bg-white/95 backdrop-blur-md border border-red-100 shadow-[0_10px_20px_rgba(239,68,68,0.2)] rounded-full px-3 py-2 flex items-center gap-2 z-[100] animate-bounce active:scale-95 transition-transform no-underline">
+                    <div class="text-red-600 text-[24px] flex items-center justify-center w-8 h-8"><i class="fa-brands fa-youtube"></i></div>
+                    <div class="flex flex-col pr-1">
+                        <span class="text-[11px] font-black text-slate-800 leading-tight">파닉스 AI영어</span>
+                        <span class="text-[9px] font-bold text-red-500 leading-tight">유튜브 보러가기 ▶</span>
+                    </div>
+                </a>
 
                 <nav class="pb-safe bg-white border-t shrink-0 z-50 relative">
                     <div class="h-16 flex items-center justify-around px-1 gap-1">
