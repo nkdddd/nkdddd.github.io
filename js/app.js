@@ -36,7 +36,7 @@ window.searchFriend = async function() {
             if(snap.empty) { window.showToast("해당 이메일을 가진 유저가 없습니다."); } 
             else {
                 const targetUser = snap.docs[0];
-                const targetEmail = targetUser.data().email || '알수없음';
+                consttargetEmail = targetUser.data().email || '알수없음';
                 const targetName = targetEmail.split('@')[0];
                 window.openCustomPrompt(`${targetName}님을 찾았습니다!\n친구 요청을 보낼까요?`, false, 'ADD_FRIEND', targetUser.id);
             }
@@ -92,8 +92,8 @@ try {
         
         window.showToast("서버와 통신 중...");
         try {
-            if (isLogin) await window.auth.signInWithEmailAndPassword(email, password);
-            else { await window.auth.createUserWithEmailAndPassword(email, password); window.showToast('가입 환영! 시작합니다. 🪙'); }
+            if (isLogin) await auth.signInWithEmailAndPassword(email, password);
+            else { await auth.createUserWithEmailAndPassword(email, password); window.showToast('가입 환영! 시작합니다. 🪙'); }
         } catch (error) {
             if (error.code === 'auth/email-already-in-use') window.showToast('이미 가입된 이메일입니다.');
             else if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') window.showToast('이메일이나 비밀번호가 틀렸습니다.');
@@ -101,9 +101,9 @@ try {
         }
     };
 
-    window.logout = async function() { await window.auth.signOut(); window.showToast('로그아웃 되었습니다.'); };
+    window.logout = async function() { await auth.signOut(); window.showToast('로그아웃 되었습니다.'); };
 
-    window.auth.onAuthStateChanged(async (user) => {
+    auth.onAuthStateChanged(async (user) => {
         if (window.isGuestMode) return; 
         clearTimeout(fallbackTimer); 
         window.isAuthReady = true;
@@ -112,7 +112,7 @@ try {
             window.currentUser = user;
             try {
                 if(window.userUnsubscribe) window.userUnsubscribe();
-                window.userUnsubscribe = window.db.collection("users").doc(user.uid).onSnapshot((docSnap) => {
+                window.userUnsubscribe = db.collection("users").doc(user.uid).onSnapshot((docSnap) => {
                     if (docSnap.exists) {
                         const data = docSnap.data();
                         window.state.coins = data.coins !== undefined ? data.coins : 200;
