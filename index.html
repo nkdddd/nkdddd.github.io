@@ -55,7 +55,7 @@
         .grade-rare { background: linear-gradient(135deg, #f8fafc, #f1f5f9, #e2e8f0); border: 4px solid #cbd5e1; box-shadow: 0 0 10px rgba(203, 213, 225, 0.5); }
         .grade-normal { background: #ffffff; border: 4px solid #f1f5f9; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
 
-        /* 팝업용 상세 트레이딩 카드 CSS (1:1 비율 복구 및 2/3 사이즈 전체 압축) */
+        /* 팝업용 상세 트레이딩 카드 CSS */
         .dex-detail-card { background: #ffffff; border: 2px solid var(--type); border-radius: 14px; overflow: hidden; box-shadow: 0 8px 20px rgba(35,32,43,.15); display: flex; flex-direction: column; width: 100%; text-align: left; }
         .dex-detail-card .card-top { display: flex; align-items: center; justify-content: space-between; background: var(--type); padding: 6px 10px; }
         .dex-detail-card .badge { width: 28px; height: 28px; border-radius: 50%; background: #fff; color: var(--type); display: grid; place-items: center; font-family: "Arial Black", sans-serif; font-size: 16px; line-height: 1; font-weight: 900; }
@@ -94,6 +94,11 @@
         .booster-circle-top { width: 100%; height: 50%; background: #ef4444; position: absolute; top: 0; }
         .booster-circle-mid { width: 100%; height: 4px; background: black; position: absolute; top: 50%; transform: translateY(-50%); }
         .booster-circle-btn { width: 12px; height: 12px; background: white; border: 2px solid black; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10; }
+
+        /* 🟢 홀로그램(Shiny) 카드 효과 CSS 🟢 */
+        @keyframes holo-shimmer { 0% { background-position: 0% 0%; } 100% { background-position: 200% 200%; } }
+        .holo-overlay { position: absolute; inset: 0; background: linear-gradient(125deg, rgba(255,0,0,0.25) 0%, rgba(255,255,0,0.25) 25%, rgba(0,255,0,0.25) 50%, rgba(0,255,255,0.25) 75%, rgba(0,0,255,0.25) 100%); background-size: 200% 200%; mix-blend-mode: color-dodge; animation: holo-shimmer 3s linear infinite; pointer-events: none; z-index: 15; border-radius: inherit; }
+        .shiny-text-effect { background: linear-gradient(to right, #ef4444, #eab308, #22c55e, #3b82f6, #a855f7); -webkit-background-clip: text; color: transparent; animation: holo-shimmer 3s linear infinite; background-size: 200% 200%; }
     </style>
 </head>
 <body>
@@ -108,7 +113,7 @@
 
     <script>
         // =========================================================================
-        // [1] 데이터베이스 (Data) - 발음 기호(ps)를 원어민이 인식하도록 마침표(.) 추가
+        // [1] 데이터베이스 (Data)
         // =========================================================================
         const CLOUD_URL = "https://storage.googleapis.com/alpamon/alphabetmon_images/";
         const WORD_URL = "https://storage.googleapis.com/alpamon/"; 
@@ -199,6 +204,15 @@
             ]
         };
 
+        // 🟢 컬렉션(테마 도감) 미션 데이터 🟢
+        const COLLECTIONS_DB = [
+            { id: 'col_animal_1', title: '🐾 숲속 동물 친구들', desc: '고양이(cat), 개(dog), 돼지(pig) 카드 수집', type: 'words', req: ['cat', 'dog', 'pig'], rewardCoins: 300 },
+            { id: 'col_bug_1', title: '🐛 꼬물꼬물 물건들', desc: '벌레(bug), 컵(cup), 욕조(tub) 수집', type: 'words', req: ['bug', 'cup', 'tub'], rewardCoins: 300 },
+            { id: 'col_baby_3', title: '✨ 아기 알파몬 트리오', desc: 'Bravy, Coby, Dravy 수집', type: 'words', req: ['Bravy', 'Coby', 'Dravy'], rewardCoins: 500 },
+            { id: 'col_super_1', title: '👑 S급의 탄생', desc: 'S급(SUPER) 등급 카드 1장 획득', type: 'grade', reqGrade: 'SUPER', reqCount: 1, rewardCoins: 800 },
+            { id: 'col_shiny_1', title: '🌟 반짝이는 기적', desc: '홀로그램(Shiny) 카드 1장 획득 (확률 5%)', type: 'shiny', reqCount: 1, rewardCoins: 1500 }
+        ];
+
         // =========================================================================
         // [2] 사운드 이펙트 & 진동 엔진 (Tone.js & Navigator API)
         // =========================================================================
@@ -242,9 +256,10 @@
         // [3] 상태 관리 및 UI 헬퍼
         // =========================================================================
         window.state = {
-            tab: 'learning', subTab: 'alphabet',
+            tab: 'learning', subTab: 'alphabet', dexTab: null,
             trainingMode: 'alphabet', trainingSubMode: 'match',
             coins: 200, inventory: [], altarSelection: [], collectionValue: 0,
+            claimedCollections: [], // 🟢 수령한 컬렉션 보상 ID 목록
             friends: [], friendRequests: [], 
             toastMsg: null, currentQuiz: null, isAnswering: false, packOpening: false, revealedCard: null, animatingCorrect: null,
             altarResult: null, isFailing: false, isFailingProtected: false, isProcessing: false,
@@ -256,7 +271,11 @@
         window.calcCollectionValue = function() {
             let val = 0;
             const vals = { 'NORMAL': 10, 'RARE': 50, 'SUPER': 200, 'LEGEND': 1000, 'MYTHIC': 5000 };
-            (window.state.inventory || []).forEach(c => val += (vals[c.grade] || 0));
+            (window.state.inventory || []).forEach(c => {
+                let cardVal = vals[c.grade] || 0;
+                if(c.isShiny) cardVal *= 3; // Shiny 카드는 가치 3배
+                val += cardVal;
+            });
             return val;
         };
 
@@ -265,7 +284,8 @@
             if (!window.currentUser || window.isGuestMode) {
                 localStorage.setItem('phonicsAppState', JSON.stringify({
                     coins: window.state.coins, inventory: window.state.inventory, 
-                    friends: window.state.friends, friendRequests: window.state.friendRequests
+                    friends: window.state.friends, friendRequests: window.state.friendRequests,
+                    claimedCollections: window.state.claimedCollections
                 }));
                 return;
             }
@@ -274,6 +294,7 @@
                     email: window.currentUser.email, coins: window.state.coins, 
                     inventory: window.state.inventory, collectionValue: window.state.collectionValue,
                     friends: window.state.friends, friendRequests: window.state.friendRequests,
+                    claimedCollections: window.state.claimedCollections,
                     lastActive: Date.now()
                 }, {merge: true}).catch(e => { console.error("저장 실패:", e); });
             }
@@ -309,7 +330,8 @@
                     const card = window.state.inventory.find(c => c.id === p.payload);
                     if(!card) return;
                     const prices = { 'NORMAL': 10, 'RARE': 50, 'SUPER': 200, 'LEGEND': 1000, 'MYTHIC': 5000 };
-                    const price = Math.floor((prices[card.grade] || 10) / 2);
+                    let price = Math.floor((prices[card.grade] || 10) / 2);
+                    if(card.isShiny) price *= 2;
                     window.state.inventory = window.state.inventory.filter(c => c.id !== card.id);
                     window.state.coins += price;
                     window.state.actionCard = null; 
@@ -394,6 +416,14 @@
             return '';
         };
 
+        // 🟢 홀로그램(Shiny) 이펙트 HTML 생성 헬퍼 🟢
+        window.getShinyHoloHtml = function(card) {
+            if (card && card.isShiny) {
+                return '<div class="holo-overlay"></div><div class="absolute top-1 left-1 text-xs z-20 animate-spin" style="animation-duration: 3s;">✨</div>';
+            }
+            return '';
+        };
+
         window.getCardLoreInfo = function(card) {
             const isNormal = card.grade === 'NORMAL';
             const wCaps = card.w.toUpperCase();
@@ -438,11 +468,9 @@
             };
         };
 
-        // 🟢 띄어쓰기 정규식 삭제! 완벽한 연음 원어민 TTS 엔진 🟢
         window.speak = function(text, lang = 'en-US') {
             if (!text) return;
             try {
-                // 구글 클라우드 번역기 API (띄어쓰기 쪼개기 삭제 완료)
                 const url = `https://translate.googleapis.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=${lang}&client=gtx`;
                 const audio = new Audio(url);
                 audio.play().catch(e => { window.fallbackSpeak(text, lang); });
@@ -476,7 +504,6 @@
             window.speechSynthesis.speak(utterance);
         };
 
-        // 🟢 흔들기 (DeviceMotion) 감지 로직 🟢
         window.lastShakeTime = 0;
         window.lastX = null; window.lastY = null; window.lastZ = null;
         
@@ -574,6 +601,34 @@
         
         window.getNewQuiz = function() {
             const mode = window.state.trainingMode || 'alphabet';
+            
+            // 🟢 카드 짝맞추기 훈련 (4장 4쌍) 🟢
+            if (mode === 'all') {
+                let pool = window.state.inventory || [];
+                if (pool.length < 4) {
+                    pool = [...WORDS_DB, ...ALPAMON_DB.BABY, ...ALPAMON_DB.MID];
+                }
+                
+                let selected = [];
+                let shuffledPool = [...pool].sort(() => 0.5 - Math.random());
+                for(let card of shuffledPool) {
+                    if(!selected.some(s => s.w === card.w)) selected.push(card);
+                    if(selected.length === 4) break;
+                }
+
+                let displayCards = selected.map(c => ({ w: c.w, emoji: c.emoji, imgUrl: c.imgUrl || (CLOUD_URL + (c.id || '')) }));
+                let displayWords = selected.map(c => ({ w: c.w, kr: c.kr }));
+
+                displayCards.sort(() => 0.5 - Math.random());
+                displayWords.sort(() => 0.5 - Math.random());
+
+                window.state.currentQuiz = {
+                    isCardMatch: true, empty: pool.length === 0, matchedPairs: [], selectedCard: null, selectedWord: null,
+                    displayCards, displayWords
+                };
+                return;
+            }
+
             if (mode === 'alphabet') {
                 const qType = window.state.trainingSubMode || 'match';
                 const target = ALPHABET_DB[Math.floor(Math.random() * ALPHABET_DB.length)];
@@ -620,12 +675,12 @@
             if (q.isAlphabet) { const fA = ALPHABET_DB.find(a=>a.u===selected||a.l===selected); if(fA) speakTarget = fA.ps; }
 
             if(isCorrect) {
-                window.state.coins += 20; window.saveData(); 
+                window.state.coins += 10; window.saveData(); 
                 if(q.isAlphabet) window.speak(speakTarget, 'en-US'); else window.speak(q.w, 'en-US');
                 window.state.animatingCorrect = selected; window.render();
-                setTimeout(() => { window.showToast("🎉 정답! +20 코인"); window.state.animatingCorrect = null; window.state.isAnswering = false; window.getNewQuiz(); window.render(); }, 700);
+                setTimeout(() => { window.showToast("🎉 정답! +10 코인"); window.state.animatingCorrect = null; window.state.isAnswering = false; window.getNewQuiz(); window.render(); }, 700);
             } else {
-                window.state.coins = Math.max(0, window.state.coins - 10); window.saveData(); 
+                window.state.coins = Math.max(0, window.state.coins - 5); window.saveData(); 
                 if (q.isAlphabet) window.speak(speakTarget, 'en-US');
                 else {
                     let soundEn = selected;
@@ -636,12 +691,57 @@
 
                 if(mainContent) mainContent.classList.add('animate-shake', 'animate-flash');
                 const btn = document.getElementById(`opt-${selected}`); if(btn) btn.classList.replace('bg-blue-500', 'bg-red-500');
-                window.showToast("앗! -10 코인");
+                window.showToast("앗! -5 코인");
                 setTimeout(() => { if(mainContent) mainContent.classList.remove('animate-shake', 'animate-flash'); if(btn) btn.classList.replace('bg-red-500', 'bg-blue-500'); window.state.isAnswering = false; window.render(); }, 500);
             }
         };
 
-        // 🟢 팩 뽑기 로직 - 효과음(두구두구 + 대박) 추가 🟢
+        window.handleCardMatchSelect = function(type, val) {
+            if(window.state.isAnswering) return;
+            const q = window.state.currentQuiz;
+            if(q.matchedPairs.includes(val)) return;
+
+            if (type === 'card') {
+                if (q.selectedCard === val) q.selectedCard = null;
+                else q.selectedCard = val;
+            } else {
+                if (q.selectedWord === val) q.selectedWord = null;
+                else q.selectedWord = val;
+            }
+            window.render();
+
+            if (q.selectedCard && q.selectedWord) {
+                window.state.isAnswering = true;
+                if (q.selectedCard === q.selectedWord) {
+                    window.state.coins += 10; window.saveData();
+                    q.matchedPairs.push(q.selectedCard);
+                    window.speak(q.selectedCard);
+                    window.playTada();
+                    window.showToast("짝맞추기 성공! +10 코인");
+                    q.selectedCard = null; q.selectedWord = null;
+                    
+                    if (q.matchedPairs.length === 4) {
+                        setTimeout(() => { window.state.isAnswering = false; window.getNewQuiz(); window.render(); }, 1000);
+                    } else {
+                        setTimeout(() => { window.state.isAnswering = false; window.render(); }, 500);
+                    }
+                } else {
+                    window.state.coins = Math.max(0, window.state.coins - 5); window.saveData();
+                    window.playFail();
+                    window.showToast("틀렸어요! -5 코인");
+                    const mainContent = document.getElementById('main-content');
+                    if(mainContent) mainContent.classList.add('animate-shake', 'animate-flash');
+                    setTimeout(() => {
+                        if(mainContent) mainContent.classList.remove('animate-shake', 'animate-flash');
+                        q.selectedCard = null; q.selectedWord = null;
+                        window.state.isAnswering = false;
+                        window.render();
+                    }, 500);
+                }
+            }
+        };
+
+        // 🟢 팩 뽑기 로직 - 홀로그램(Shiny) 확률 부여 🟢
         window.openPack = async function() {
             if(window.state.coins < 50) return window.showToast("코인이 부족해요! (50 필요)");
             if(window.state.packOpening || window.state.isProcessing) return;
@@ -659,8 +759,11 @@
                 } else if (rand < 0.20) { grade = 'RARE'; const target = ALPAMON_DB.BABY[Math.floor(Math.random() * ALPAMON_DB.BABY.length)]; drawnCard = { w: target.w, kr: target.kr, emoji: target.emoji, imgUrl: CLOUD_URL + target.id };
                 } else { grade = 'NORMAL'; drawnCard = WORDS_DB[Math.floor(Math.random() * WORDS_DB.length)]; }
 
+                // 🟢 5% 확률로 홀로그램(Shiny) 등급 부여 🟢
+                const isShiny = Math.random() < 0.05;
+
                 setTimeout(() => { 
-                    window.state.revealedCard = { id: Date.now().toString(), ...drawnCard, grade: grade }; 
+                    window.state.revealedCard = { id: Date.now().toString(), ...drawnCard, grade: grade, isShiny: isShiny }; 
                     window.state.isProcessing = false; 
                     window.render(); 
                     window.playTada(); // 🎉 대박 사운드 팡파르!
@@ -699,7 +802,6 @@
             window.render();
         };
 
-        // 🟢 제단 시작 로직 - 모바일 흔들기(Shake) 권한 요청 🟢
         window.startClickEvent = function() {
             if(window.state.altarSelection.length === 0 || window.state.isProcessing) return;
             const firstCardId = window.state.altarSelection[0];
@@ -710,7 +812,7 @@
             
             window.initAudio();
 
-            // iOS 기기 등에서 흔들기 센서 권한 허용 (버튼을 클릭했을 때만 작동함)
+            // iOS 기기 등에서 흔들기 센서 권한 허용
             if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
                 DeviceMotionEvent.requestPermission().then(response => {
                     if (response === 'granted') window.addEventListener('devicemotion', window.handleShake);
@@ -737,7 +839,6 @@
             if(!window.state.isClickingMode) return;
             window.state.clickCount += 1;
             
-            // 터치/흔들 때마다 미세 진동
             if(navigator.vibrate) navigator.vibrate(20);
 
             const countEl = document.getElementById('click-count-text'); if (countEl) countEl.innerText = window.state.clickCount;
@@ -754,7 +855,6 @@
             const btn = document.getElementById('click-btn'); if(btn) { btn.style.transform = 'scale(0.9)'; setTimeout(()=>btn.style.transform='scale(1)', 50); }
         };
 
-        // 🟢 제단 결과 사운드 연동 🟢
         window.tryEvolve = async function() {
             window.state.isProcessing = true; window.render();
             const cardId = window.state.altarSelection[0]; const baseCard = window.state.inventory.find(c => c.id === cardId); const grade = baseCard.grade;
@@ -772,7 +872,11 @@
                 if(Math.random() < finalRate) { 
                     window.state.inventory = window.state.inventory.filter(c => !window.state.altarSelection.includes(c.id)); window.state.altarSelection = [];
                     const targetData = dbTarget[Math.floor(Math.random() * dbTarget.length)];
-                    const newCard = { id: Date.now().toString(), grade: nextGrade, w: targetData.w, kr: targetData.kr, emoji: targetData.emoji, imgUrl: CLOUD_URL + targetData.id };
+                    
+                    // 🟢 진화 성공 시 5% 확률로 Shiny 획득 🟢
+                    const isShiny = Math.random() < 0.05;
+                    const newCard = { id: Date.now().toString(), grade: nextGrade, w: targetData.w, kr: targetData.kr, emoji: targetData.emoji, imgUrl: CLOUD_URL + targetData.id, isShiny: isShiny };
+                    
                     window.state.revealedCard = newCard; window.state.packOpening = true; 
                     window.playTada(); // 진화 성공 팡파르!
                     window.showToast(`✨ 합성 대성공! (확률 ${Math.floor(finalRate*100)}% 적용)`); window.speak(targetData.w);
@@ -804,6 +908,64 @@
             if(window.state.coins < item.price) return window.showToast("코인이 부족합니다.");
             const sellerName = item.sellerEmail ? item.sellerEmail.split('@')[0] : '유저';
             window.openCustomPrompt(`${sellerName}님의 ${item.card.kr} 카드를 ${item.price}코인에 구매하시겠습니까?`, false, 'BUY_MARKET', marketId);
+        };
+// 🟢 무한 컬렉션 미션 시스템 🟢
+        window.generateMission = function() {
+            const types = ['WORDS', 'ALPHAMON', 'LETTER'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            const id = 'm_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+
+            if (type === 'WORDS') {
+                const targets = [...WORDS_DB].sort(()=>0.5-Math.random()).slice(0, 3).map(w => w.w);
+                return { id, type, targets, title: `📚 단어 마스터: ${targets.join(', ')} 수집`, reward: 150 };
+            } else if (type === 'ALPHAMON') {
+                const targets = [...ALPAMON_DB.BABY, ...ALPAMON_DB.MID].sort(()=>0.5-Math.random()).slice(0, 2).map(a => a.w);
+                return { id, type, targets, title: `🦄 알파몬 탐험: ${targets.join(', ')} 수집`, reward: 300 };
+            } else {
+                const letter = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[Math.floor(Math.random()*26)];
+                const cnt = Math.floor(Math.random() * 2) + 2;
+                return { id, type, targetLetter: letter, targetCount: cnt, title: `🔤 알파벳 수집: '${letter}'로 시작하는 카드 ${cnt}장`, reward: 200 };
+            }
+        };
+
+        window.ensureMissions = function() {
+            if(!window.state.missions) window.state.missions = [];
+            let added = false;
+            while(window.state.missions.length < 3) {
+                window.state.missions.push(window.generateMission());
+                added = true;
+            }
+            if(added) window.saveData();
+        };
+
+        window.checkMissionProgress = function(m) {
+            const inv = window.state.inventory || [];
+            if (m.type === 'WORDS' || m.type === 'ALPHAMON') {
+                const invWords = inv.map(c => c.w);
+                let count = 0;
+                m.targets.forEach(t => { if(invWords.includes(t)) count++; });
+                return { current: count, max: m.targets.length, isComplete: count >= m.targets.length };
+            } else if (m.type === 'LETTER') {
+                const count = inv.filter(c => c.w.toUpperCase().startsWith(m.targetLetter)).length;
+                return { current: Math.min(count, m.targetCount), max: m.targetCount, isComplete: count >= m.targetCount };
+            }
+            return { current: 0, max: 1, isComplete: false };
+        };
+
+        window.claimMission = function(id) {
+            const mIdx = window.state.missions.findIndex(x => x.id === id);
+            if (mIdx === -1) return;
+            const m = window.state.missions[mIdx];
+            const prog = window.checkMissionProgress(m);
+            if (prog.isComplete) {
+                window.state.coins += m.reward;
+                window.state.missions.splice(mIdx, 1); // 완료된 미션 삭제
+                window.showToast(`🎉 미션 완료! +${m.reward} 코인`);
+                window.playTada();
+                window.ensureMissions(); // 새로운 랜덤 미션 즉시 보충!
+                window.saveData();
+                window.render();
+            }
         };
 
         // =========================================================================
@@ -851,13 +1013,47 @@
                 abcSubMenuHtml = `<div class="flex bg-blue-100/50 rounded-full p-1 mt-3 shadow-inner w-full max-w-[250px] mx-auto border border-blue-100"><button onclick="window.setTrainingSubMode('match')" class="flex-1 py-1.5 rounded-full font-bold text-[10px] transition-all ${sub === 'match' ? 'bg-blue-500 text-white shadow' : 'text-blue-600'}">대소문자</button><button onclick="window.setTrainingSubMode('name')" class="flex-1 py-1.5 rounded-full font-bold text-[10px] transition-all ${sub === 'name' ? 'bg-blue-500 text-white shadow' : 'text-blue-600'}">이름</button><button onclick="window.setTrainingSubMode('sound')" class="flex-1 py-1.5 rounded-full font-bold text-[10px] transition-all ${sub === 'sound' ? 'bg-blue-500 text-white shadow' : 'text-blue-600'}">발음</button></div>`;
             }
             let quizAreaHtml = '';
-            if (q.isAlphabet) {
+            
+            if (q.isCardMatch) {
+                if (q.empty) {
+                    quizAreaHtml = `<div class="bg-white rounded-[2rem] p-8 shadow-xl w-full max-w-sm flex flex-col items-center border-2 border-slate-100 relative z-10 mt-6"><div class="text-slate-500 font-bold mb-4 text-center">도감에 수집한 카드가 없습니다.<br>상점이나 제단에서 알파몬을 모아주세요!</div></div>`;
+                } else {
+                    quizAreaHtml = `<div class="w-full max-w-sm flex flex-col mt-4 relative z-10">
+                        <div class="text-[11px] font-black text-blue-600 bg-blue-100 border border-blue-200 px-4 py-1.5 rounded-full mb-4 self-center shadow-sm">그림과 단어의 짝을 맞춰보세요!</div>
+                        <div class="flex gap-4 w-full">
+                            <div class="flex-1 flex flex-col gap-3">
+                                ${q.displayCards.map(c => {
+                                    const isMatched = q.matchedPairs.includes(c.w);
+                                    const isSelected = q.selectedCard === c.w;
+                                    if (isMatched) return `<div class="h-20 opacity-0 pointer-events-none"></div>`;
+                                    const imgHtml = c.imgUrl && !c.imgUrl.endsWith('undefined') ? `<img src="${c.imgUrl}" class="w-14 h-14 object-contain pointer-events-none" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"/><div class="text-4xl pointer-events-none" style="display:none;">${c.emoji}</div>` : `<div class="text-4xl pointer-events-none">${c.emoji}</div>`;
+                                    return `<button onclick="window.handleCardMatchSelect('card', '${c.w}')" class="h-20 bg-white rounded-2xl shadow-sm border-4 ${isSelected ? 'border-blue-500 bg-blue-50 scale-105' : 'border-slate-100 active:scale-95'} flex items-center justify-center transition-all">${imgHtml}</button>`;
+                                }).join('')}
+                            </div>
+                            <div class="flex-1 flex flex-col gap-3">
+                                ${q.displayWords.map(c => {
+                                    const isMatched = q.matchedPairs.includes(c.w);
+                                    const isSelected = q.selectedWord === c.w;
+                                    if (isMatched) return `<div class="h-20 opacity-0 pointer-events-none"></div>`;
+                                    return `<button onclick="window.handleCardMatchSelect('word', '${c.w}')" class="h-20 bg-white rounded-2xl shadow-sm border-4 ${isSelected ? 'border-blue-500 bg-blue-50 scale-105 text-blue-600' : 'border-slate-100 text-slate-700 active:scale-95'} flex flex-col items-center justify-center transition-all font-black"><span class="text-lg capitalize">${c.w}</span><span class="text-[10px] text-gray-400 font-bold mt-1">${c.kr}</span></button>`;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            } else if (q.isAlphabet) {
                 quizAreaHtml = `<div class="bg-white rounded-[2rem] p-8 shadow-xl w-full max-w-sm flex flex-col items-center border-2 border-slate-100 relative z-10 mt-6"><div class="text-[10px] font-black text-blue-500 bg-blue-50 border border-blue-100 px-3 py-1 rounded-full mb-4">${q.sub}</div><div class="text-5xl sm:text-6xl mb-2 drop-shadow-md font-black text-indigo-600 cursor-pointer active:scale-95 transition-transform group relative flex items-center justify-center gap-2 whitespace-nowrap" onclick="window.speak('${q.speakText}', '${q.speakLang}')">${q.display}</div></div>`;
             } else {
                 const displayHtml = q.parts.map((p, idx) => { if(idx === q.blankIndex) return window.state.animatingCorrect ? `<span class="text-blue-500 animate-pop inline-block">${p}</span>` : `<span class="text-blue-200 border-b-4 border-blue-200 px-2 inline-block w-8 text-center pb-1">?</span>`; return `<span class="text-slate-700 inline-block px-1">${p}</span>`; }).join('');
                 quizAreaHtml = `<div class="bg-white rounded-[2rem] p-8 shadow-xl w-full max-w-sm flex flex-col items-center border-2 border-slate-100 relative z-10 mt-6"><div class="text-7xl mb-4 drop-shadow-sm cursor-pointer active:scale-95 transition-transform group relative" onclick="window.speak('${q.w}')">${q.emoji}<div class="absolute -top-2 -right-8 bg-yellow-300 text-yellow-800 text-[10px] font-black px-2 py-1 rounded-full animate-bounce shadow-md whitespace-nowrap">힌트 듣기!</div></div><div class="bg-slate-100 text-slate-500 font-bold px-4 py-1.5 rounded-full mb-8">${q.kr}</div><div class="text-5xl font-black tracking-widest uppercase flex items-center h-16">${displayHtml}</div></div>`;
             }
-            return `<div class="flex flex-col h-full w-full"><div class="flex-1 flex flex-col items-center justify-center p-6"><div class="flex flex-col w-full"><div class="flex bg-gray-200 rounded-full p-1 shadow-inner w-full max-w-sm mx-auto"><button onclick="window.setTrainingMode('alphabet')" class="flex-1 py-2.5 rounded-full font-bold text-[11px] transition-all ${mode === 'alphabet' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'}">ABC 기초</button><button onclick="window.setTrainingMode('vowel')" class="flex-1 py-2.5 rounded-full font-bold text-[11px] transition-all ${mode === 'vowel' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'}">모음 훈련</button><button onclick="window.setTrainingMode('all')" class="flex-1 py-2.5 rounded-full font-bold text-[11px] transition-all ${mode === 'all' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'}">종합 훈련</button></div>${abcSubMenuHtml}</div>${quizAreaHtml}<div class="flex flex-wrap justify-center gap-3 mt-10 w-full relative z-20">${q.options.map(opt => `<button id="opt-${opt}" onclick="window.checkAnswer('${opt}')" class="w-14 h-14 bg-blue-500 text-white rounded-2xl text-2xl font-black shadow-[0_5px_0_#1d4ed8] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center relative overflow-hidden ${q.isAlphabet ? '' : 'uppercase'}"><span class="${window.state.animatingCorrect === opt ? 'opacity-0' : 'opacity-100'}">${opt}</span>${window.state.animatingCorrect === opt ? `<span class="absolute inset-0 flex items-center justify-center animate-fly text-3xl font-black text-yellow-300 z-50">${opt}</span>` : ''}</button>`).join('')}</div></div></div>`;
+
+            let optionsHtml = '';
+            if (!q.isCardMatch) {
+                optionsHtml = `<div class="flex flex-wrap justify-center gap-3 mt-10 w-full relative z-20">${q.options.map(opt => `<button id="opt-${opt}" onclick="window.checkAnswer('${opt}')" class="w-14 h-14 bg-blue-500 text-white rounded-2xl text-2xl font-black shadow-[0_5px_0_#1d4ed8] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center relative overflow-hidden ${q.isAlphabet ? '' : 'uppercase'}"><span class="${window.state.animatingCorrect === opt ? 'opacity-0' : 'opacity-100'}">${opt}</span>${window.state.animatingCorrect === opt ? `<span class="absolute inset-0 flex items-center justify-center animate-fly text-3xl font-black text-yellow-300 z-50">${opt}</span>` : ''}</button>`).join('')}</div>`;
+            }
+
+            return `<div class="flex flex-col h-full w-full"><div class="flex-1 flex flex-col items-center justify-center p-6"><div class="flex flex-col w-full"><div class="flex bg-gray-200 rounded-full p-1 shadow-inner w-full max-w-sm mx-auto"><button onclick="window.setTrainingMode('alphabet')" class="flex-1 py-2.5 rounded-full font-bold text-[11px] transition-all ${mode === 'alphabet' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'}">ABC 기초</button><button onclick="window.setTrainingMode('vowel')" class="flex-1 py-2.5 rounded-full font-bold text-[11px] transition-all ${mode === 'vowel' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'}">모음 훈련</button><button onclick="window.setTrainingMode('all')" class="flex-1 py-2.5 rounded-full font-bold text-[11px] transition-all ${mode === 'all' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'}">종합(짝맞추기)</button></div>${abcSubMenuHtml}</div>${quizAreaHtml}${optionsHtml}</div></div>`;
         };
 
         window.renderShop = function() {
@@ -874,7 +1070,7 @@
                             <div class="flex justify-between"><span class="font-black text-yellow-600">👑 S급 (Mid 알파몬)</span> <span class="text-yellow-500">3%</span></div>
                             <div class="flex justify-between"><span class="font-black text-slate-500">✨ A급 (Baby 알파몬)</span> <span class="text-slate-500">17%</span></div>
                             <div class="flex justify-between"><span>⬜ 일반 영단어</span> <span class="text-gray-400">80%</span></div>
-                            <div class="text-center text-[9px] mt-2 text-purple-400 font-bold">🔥 SS급, SSS급은 제단 진화를 통해서만 획득 가능합니다.</div>
+                            <div class="text-center text-[9px] mt-2 text-purple-400 font-bold">🔥 SS급, SSS급은 제단 진화를 통해서만 획득 가능합니다.<br>⭐ 5% 확률로 홀로그램 카드가 등장합니다!</div>
                         </div>
                     </div>
                 </div>`;
@@ -944,11 +1140,32 @@
                                 const isSel = window.state.altarSelection.includes(item.id);
                                 let ringColor = item.grade === 'MYTHIC' ? 'border-purple-400 bg-purple-50' : (item.grade === 'LEGEND' ? 'border-red-400 bg-red-50' : (item.grade === 'SUPER' ? 'border-yellow-400 bg-yellow-50' : 'border-slate-300 bg-slate-50'));
                                 if (isSel) ringColor = 'border-blue-500 bg-blue-100 ring-2 ring-blue-300';
-                                return `<button onclick="window.selectForAltar('${item.id}')" class="relative ${ringColor} border-2 rounded-xl p-2 flex flex-col items-center transition-all overflow-hidden"><div class="h-8 flex items-center justify-center mt-1">${item.imgUrl ? `<img src="${item.imgUrl}" style="width: 2rem; height: 2rem; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" /><div class="text-2xl" style="display:none;">${item.emoji}</div>` : `<div class="text-2xl">${item.emoji}</div>`}</div><div class="text-[9px] font-black mt-1 w-full text-center text-slate-700 truncate capitalize">${item.w}</div>${isSel ? '<div class="absolute -top-2 -right-2 bg-blue-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold">✓</div>' : ''}</button>`;
+                                return `<button onclick="window.selectForAltar('${item.id}')" class="relative ${ringColor} border-2 rounded-xl p-2 flex flex-col items-center transition-all overflow-hidden">
+                                    ${window.getShinyHoloHtml(item)}
+                                    <div class="h-8 flex items-center justify-center mt-1 z-10">${item.imgUrl ? `<img src="${item.imgUrl}" style="width: 2rem; height: 2rem; object-fit: contain; filter: drop-shadow(0 1px 1px rgba(0,0,0,0.1));" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" /><div class="text-2xl" style="display:none;">${item.emoji}</div>` : `<div class="text-2xl">${item.emoji}</div>`}</div>
+                                    <div class="text-[9px] font-black mt-1 w-full text-center text-slate-700 truncate capitalize z-10">${item.w}</div>
+                                    ${isSel ? '<div class="absolute -top-2 -right-2 bg-blue-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center font-bold z-20">✓</div>' : ''}
+                                </button>`;
                             }).join('')}
                         </div>
                     </div>
                 </div>`;
+        };
+
+        window.setDexTab = function(tab) { window.state.dexTab = tab; window.render(); };
+
+        // 🟢 컬렉션 보상 수령 로직 🟢
+        window.claimCollectionReward = function(colId) {
+            const col = COLLECTIONS_DB.find(c => c.id === colId);
+            if (!col) return;
+            if (window.state.claimedCollections.includes(colId)) return window.showToast("이미 수령한 보상입니다.");
+
+            window.state.coins += col.rewardCoins;
+            window.state.claimedCollections.push(colId);
+            window.saveData();
+            window.playTada();
+            window.showToast(`🎉 ${col.title} 완성! +${col.rewardCoins} 코인 획득`);
+            window.render();
         };
 
         window.renderDex = function() {
@@ -963,6 +1180,26 @@
                 `;
             } 
             
+            // 🟢 과거 버전에서 모은 카드들의 등급(grade) 누락 보정 🟢
+            window.state.inventory.forEach(card => {
+                if (!['MYTHIC', 'LEGEND', 'SUPER', 'RARE', 'NORMAL'].includes(card.grade)) {
+                    if (ALPAMON_DB.BABY.some(a => a.w === card.w)) card.grade = 'RARE';
+                    else if (ALPAMON_DB.MID.some(a => a.w === card.w)) card.grade = 'SUPER';
+                    else if (ALPAMON_DB.FINAL.some(a => a.w === card.w)) card.grade = 'LEGEND';
+                    else if (ALPAMON_DB.GOD.some(a => a.w === card.w)) card.grade = 'MYTHIC';
+                    else card.grade = 'NORMAL';
+                }
+            });
+
+            const hasAlphamon = window.state.inventory.some(c => c.grade !== 'NORMAL');
+            const hasNormal = window.state.inventory.some(c => c.grade === 'NORMAL');
+
+            if (!window.state.dexTab) {
+                if (!hasAlphamon && hasNormal) window.state.dexTab = 'normal';
+                else window.state.dexTab = 'alphamon';
+            }
+            const activeTab = window.state.dexTab;
+
             const groups = {
                 'MYTHIC': { title: '🌌 SSS급 신 (Mythic)', cards: [] },
                 'LEGEND': { title: '💎 SS급 최종진화 (Legend)', cards: [] },
@@ -978,14 +1215,73 @@
             
             let dexHtml = `
                 <div class="p-4 flex flex-col h-full w-full">
+                    <div class="flex bg-gray-200 rounded-full p-1 mb-4 shadow-inner text-[10px] shrink-0 gap-1 overflow-x-auto hide-scrollbar">
+                        <button onclick="window.setDexTab('alphamon')" class="shrink-0 px-3 py-2.5 rounded-full font-bold transition-all ${activeTab === 'alphamon' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'}">🦄 알파몬 (소문자)</button>
+                        <button onclick="window.setDexTab('normal')" class="shrink-0 px-3 py-2.5 rounded-full font-bold transition-all ${activeTab === 'normal' ? 'bg-white text-blue-600 shadow' : 'text-gray-500'}">📚 일반 영단어</button>
+                        <button onclick="window.setDexTab('collection')" class="shrink-0 px-3 py-2.5 rounded-full font-bold transition-all ${activeTab === 'collection' ? 'bg-white text-yellow-600 shadow' : 'text-gray-500'}">🏆 컬렉션 보상</button>
+                    </div>
                     <div class="flex-1 overflow-y-auto w-full pb-4 hide-scrollbar">
-                        <h2 class="text-xl font-black text-slate-800 mb-4 px-2">나의 도감 <span class="text-blue-500">${window.state.inventory.length}</span></h2>
+            `;
+
+            // 🟢 컬렉션 탭 화면 렌더링 🟢
+            if (activeTab === 'collection') {
+                dexHtml += `<div class="flex flex-col gap-3">
+                    <div class="text-[11px] text-yellow-700 font-bold px-2 mb-2 text-center bg-yellow-50 py-2 rounded-lg border border-yellow-200">
+                        ✨ 미션을 달성하고 푸짐한 코인 보상을 받으세요!
+                    </div>`;
+                
+                COLLECTIONS_DB.forEach(col => {
+                    let isCompleted = false;
+                    const inventory = window.state.inventory;
+                    
+                    if (col.type === 'words') {
+                        isCompleted = col.req.every(reqWord => inventory.some(c => c.w === reqWord));
+                    } else if (col.type === 'grade') {
+                        const count = inventory.filter(c => c.grade === col.reqGrade).length;
+                        isCompleted = count >= col.reqCount;
+                    } else if (col.type === 'shiny') {
+                        const count = inventory.filter(c => c.isShiny).length;
+                        isCompleted = count >= col.reqCount;
+                    }
+
+                    const isClaimed = window.state.claimedCollections.includes(col.id);
+                    
+                    let btnHtml = '';
+                    if (isClaimed) {
+                        btnHtml = `<button class="mt-2 w-full bg-gray-200 text-gray-500 font-bold py-2 rounded-xl text-xs" disabled>✔️ 보상 수령 완료</button>`;
+                    } else if (isCompleted) {
+                        btnHtml = `<button onclick="window.claimCollectionReward('${col.id}')" class="mt-2 w-full bg-yellow-400 text-yellow-900 font-black py-2 rounded-xl text-xs shadow-md animate-pulse active:scale-95 transition-transform">🎁 보상 받기 (+${col.rewardCoins} 코인)</button>`;
+                    } else {
+                        btnHtml = `<button class="mt-2 w-full bg-slate-100 text-slate-400 font-bold py-2 rounded-xl text-xs border border-slate-200" disabled>🔒 카드 부족</button>`;
+                    }
+
+                    dexHtml += `
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border ${isCompleted && !isClaimed ? 'border-yellow-400 bg-yellow-50/50 ring-2 ring-yellow-200' : 'border-gray-100'} flex flex-col">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-black text-slate-800 text-sm">${col.title}</h3>
+                                <span class="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-md text-[10px] font-black"><i class="fa-solid fa-coins"></i> ${col.rewardCoins}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 font-bold leading-tight mt-1">${col.desc}</p>
+                            ${btnHtml}
+                        </div>
+                    `;
+                });
+                dexHtml += `</div></div></div>`;
+                return dexHtml;
+            }
+
+            dexHtml += `
+                        <div class="flex items-center justify-between px-2 mb-4">
+                            <h2 class="text-xl font-black text-slate-800">나의 도감 <span class="text-blue-500">${window.state.inventory.length}</span></h2>
+                        </div>
                         <div class="text-[11px] text-blue-600 font-bold px-2 mb-4 text-center bg-blue-50 py-2 rounded-lg border border-blue-100">
                             💡 카드를 터치하면 멋진 상세 정보와 발음을 들을 수 있어요!
                         </div>
             `;
 
-            ['MYTHIC', 'LEGEND', 'SUPER', 'RARE', 'NORMAL'].forEach(gradeKey => {
+            const groupsToRender = activeTab === 'alphamon' ? ['MYTHIC', 'LEGEND', 'SUPER', 'RARE'] : ['NORMAL'];
+
+            groupsToRender.forEach(gradeKey => {
                 const group = groups[gradeKey];
                 if (group.cards.length > 0) {
                     dexHtml += `
@@ -996,11 +1292,12 @@
                                     <div class="${window.getCardGradeStyle(item.grade)} rounded-2xl p-2 cursor-pointer shadow-sm active:scale-95 transition-transform" 
                                          style="aspect-ratio: 3/4; display: flex; flex-direction: column; align-items: center; justify-content: space-between; position: relative; overflow: hidden;"
                                          onclick="window.openCardAction('${item.id}')">
+                                        ${window.getShinyHoloHtml(item)}
                                         ${window.getSmallBadge(item.grade)}
-                                        <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 0.75rem;">
+                                        <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 0.75rem; z-10 position: relative;">
                                             ${item.imgUrl ? `<img src="${item.imgUrl}" style="width: 3rem; height: 3rem; object-fit: contain; filter: drop-shadow(0 4px 3px rgba(0,0,0,0.1));" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"/> <div style="font-size: 1.875rem; line-height: 2.25rem; z-index: 10; display: none;">${item.emoji}</div>` : `<div style="font-size: 1.875rem; line-height: 2.25rem; z-index: 10;">${item.emoji}</div>`}
                                         </div>
-                                        <div style="font-size: 0.625rem; font-weight: 900; color: #1e293b; width: 100%; text-align: center; z-index: 10; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; margin-bottom: 0.25rem;">${item.w}</div>
+                                        <div style="font-size: 0.625rem; font-weight: 900; color: #1e293b; width: 100%; text-align: center; z-index: 20; position: relative; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; margin-bottom: 0.25rem;">${item.w}</div>
                                     </div>
                                 `).join('')}
                             </div>
@@ -1124,15 +1421,16 @@
                         const sellerName = m.sellerEmail ? m.sellerEmail.split('@')[0] : '유저';
                         return `
                         <div class="${window.getCardGradeStyle(m.card.grade)} rounded-2xl p-3 flex flex-col items-center relative overflow-hidden shadow-sm justify-between" style="aspect-ratio: 3/4;">
+                            ${window.getShinyHoloHtml(m.card)}
                             ${window.getSmallBadge(m.card.grade)}
-                            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 0.5rem;">
+                            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 0.5rem; z-10 relative">
                                 ${m.card.imgUrl ? `<img src="${m.card.imgUrl}" style="width: 3.5rem; height: 3.5rem; object-fit: contain; filter: drop-shadow(0 4px 3px rgba(0,0,0,0.1));" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"/><div style="font-size: 2.25rem; line-height: 2.5rem; z-index: 10; display:none;">${m.card.emoji}</div>` : `<div style="font-size: 2.25rem; line-height: 2.5rem; z-index: 10;">${m.card.emoji}</div>`}
                             </div>
-                            <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 0.25rem;">
+                            <div style="width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 0.25rem; z-10 relative">
                                 <div style="font-size: 0.75rem; font-weight: 900; color: #1e293b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; width: 100%; text-align: center;">${m.card.w}</div>
                                 <div style="font-size: 0.5625rem; font-weight: 700; color: #64748b; margin-bottom: 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; text-align: center;">${sellerName}님 판매</div>
                             </div>
-                            <button onclick="window.openCustomPrompt('${sellerName}님의 카드를 ${m.price}코인에 구매할까요?', false, 'BUY_MARKET', '${m.id}')" class="w-full bg-blue-500 text-white font-black text-[12px] py-2 rounded-xl active:bg-blue-600 shadow-[0_3px_0_#1d4ed8] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1 shrink-0">
+                            <button onclick="window.openCustomPrompt('${sellerName}님의 카드를 ${m.price}코인에 구매할까요?', false, 'BUY_MARKET', '${m.id}')" class="w-full bg-blue-500 text-white font-black text-[12px] py-2 rounded-xl active:bg-blue-600 shadow-[0_3px_0_#1d4ed8] active:translate-y-1 active:shadow-none transition-all flex items-center justify-center gap-1 shrink-0 z-20 relative">
                                 <i class="fa-solid fa-coins text-[10px]"></i> ${m.price}
                             </button>
                         </div>
@@ -1143,6 +1441,20 @@
 
         window.renderUserDex = function() {
             const u = window.state.viewingUser;
+            
+            // 🟢 친구 도감도 과거 버전 데이터 등급 자동 보정 🟢
+            if (u.inventory) {
+                u.inventory.forEach(card => {
+                    if (!['MYTHIC', 'LEGEND', 'SUPER', 'RARE', 'NORMAL'].includes(card.grade)) {
+                        if (ALPAMON_DB.BABY.some(a => a.w === card.w)) card.grade = 'RARE';
+                        else if (ALPAMON_DB.MID.some(a => a.w === card.w)) card.grade = 'SUPER';
+                        else if (ALPAMON_DB.FINAL.some(a => a.w === card.w)) card.grade = 'LEGEND';
+                        else if (ALPAMON_DB.GOD.some(a => a.w === card.w)) card.grade = 'MYTHIC';
+                        else card.grade = 'NORMAL';
+                    }
+                });
+            }
+
             const isMe = window.currentUser && u.uid === window.currentUser.uid;
             const isFriend = (window.state.friends || []).includes(u.uid);
             const userName = u.email ? u.email.split('@')[0] : '유저';
@@ -1162,11 +1474,12 @@
                 <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; padding-bottom: 1rem;">
                     ${u.inventory.slice().reverse().map(item => `
                         <div class="${window.getCardGradeStyle(item.grade)} aspect-[3/4] rounded-2xl p-2 flex flex-col items-center justify-between relative overflow-hidden shadow-sm" onclick="window.speak('${item.w}')">
+                            ${window.getShinyHoloHtml(item)}
                             ${window.getSmallBadge(item.grade)}
-                            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 0.75rem;">
+                            <div style="flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 0.75rem; z-10 relative">
                                 ${item.imgUrl ? `<img src="${item.imgUrl}" style="width: 2.5rem; height: 2.5rem; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"/><div style="font-size: 1.5rem; line-height: 2rem; z-index: 10; display:none;">${item.emoji}</div>` : `<div style="font-size: 1.5rem; line-height: 2rem; z-index: 10;">${item.emoji}</div>`}
                             </div>
-                            <div style="font-size: 0.625rem; font-weight: 900; color: #1e293b; width: 100%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; margin-bottom: 0.25rem;">${item.w}</div>
+                            <div style="font-size: 0.625rem; font-weight: 900; color: #1e293b; width: 100%; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-transform: capitalize; margin-bottom: 0.25rem; z-10 relative">${item.w}</div>
                         </div>
                     `).join('')}
                 </div>
@@ -1280,17 +1593,18 @@
                         <button onclick="window.closeCardAction()" class="absolute -top-3 -right-3 w-8 h-8 bg-gray-800 border-2 border-white rounded-full flex items-center justify-center text-white text-sm z-[400] shadow-lg transition-transform active:scale-90">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
-                        <article class="dex-detail-card shadow-2xl" style="--type:${meta.color}">
-                            <header class="card-top">
+                        <article class="dex-detail-card shadow-2xl relative" style="--type:${meta.color}">
+                            ${window.getShinyHoloHtml(card)}
+                            <header class="card-top z-10 relative">
                                 <span class="badge">${meta.letter}</span>
                                 <span class="no">${meta.no}</span>
                             </header>
-                            <div class="hero">
+                            <div class="hero z-10 relative">
                                 <span class="ghost-letter">${meta.letter}</span>
                                 ${card.imgUrl ? `<img class="hero-img" src="${card.imgUrl}" alt="${card.w}" onerror="this.style.display='none';this.nextElementSibling.style.display='block';">` : ''}
                                 <div class="text-8xl drop-shadow-lg" style="${card.imgUrl ? 'display:none;' : ''}">${card.emoji}</div>
                             </div>
-                            <div class="body">
+                            <div class="body z-10 relative">
                                 <div class="names">
                                     <h2 onclick="window.speak('${speakTarget}');" class="cursor-pointer active:scale-95 transition-transform flex items-center gap-1.5 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100 shadow-sm" title="발음 듣기">
                                         ${card.w} <i class="fa-solid fa-volume-high text-[11px] text-blue-500 drop-shadow-sm"></i>
@@ -1307,7 +1621,7 @@
                             </div>
                         </article>
 
-                        <div class="grid grid-cols-2 gap-2 mt-1">
+                        <div class="grid grid-cols-2 gap-2 mt-1 relative z-10">
                             <button onclick="window.actionMarketSell()" class="bg-purple-500 text-white font-bold py-2.5 rounded-xl active:bg-purple-600 active:scale-95 transition-all shadow-sm flex items-center justify-center gap-1.5 text-xs">
                                 <i class="fa-solid fa-users"></i> 거래소 올리기
                             </button>
@@ -1323,9 +1637,10 @@
                 <div class="absolute inset-0 z-[200] bg-black/90 flex flex-col items-center justify-center p-6 backdrop-blur-sm">
                     ${window.state.revealedCard ? `
                         <div class="${window.getCardGradeStyle(window.state.revealedCard.grade)} rounded-3xl p-8 w-full max-w-[280px] animate-pop flex flex-col items-center text-center relative overflow-hidden">
-                            ${window.state.revealedCard.grade !== 'NORMAL' ? '<div class="absolute inset-0 bg-[url(\'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZmZmIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=\')] opacity-50 mix-blend-overlay"></div>' : ''}
+                            ${window.getShinyHoloHtml(window.state.revealedCard)}
+                            ${window.state.revealedCard.grade !== 'NORMAL' ? '<div class="absolute inset-0 bg-[url(\'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZm 지mIiBmaWxsLW9wYWNpdHk9IjAuMSIvPgo8L3N2Zz4=\')] opacity-50 mix-blend-overlay"></div>' : ''}
                             <div class="relative z-10 w-full flex flex-col items-center">
-                                <div class="mb-6">${window.getCardGradeText(window.state.revealedCard.grade)}</div>
+                                <div class="mb-6">${window.state.revealedCard.isShiny ? '<span class="shiny-text-effect font-black text-lg bg-white/80 px-4 py-1 rounded-full shadow-md border border-yellow-200">✨ SHINY ✨</span><br>' : ''}${window.getCardGradeText(window.state.revealedCard.grade)}</div>
                                 ${window.state.revealedCard.imgUrl 
                                     ? `<img src="${window.state.revealedCard.imgUrl}" class="w-32 h-32 object-contain drop-shadow-xl animate-bounce mb-4" onerror="this.style.display='none';this.nextElementSibling.style.display='block';"/><div class="text-8xl mb-4 drop-shadow-md" style="display:none;">${window.state.revealedCard.emoji}</div>`
                                     : `<div class="text-8xl mb-4 drop-shadow-md">${window.state.revealedCard.emoji}</div>`
@@ -1446,6 +1761,20 @@
                 }
             };
 
+            window.startGuestMode = function() {
+                window.isGuestMode = true; window.isAuthReady = true; window.currentUser = null;
+                const savedData = localStorage.getItem('phonicsAppState');
+                if (savedData) {
+                    try {
+                        const localData = JSON.parse(savedData);
+                        window.state.coins = localData.coins !== undefined ? localData.coins : 200;
+                        window.state.inventory = localData.inventory || [];
+                        window.state.claimedCollections = localData.claimedCollections || [];
+                    } catch(e) {}
+                }
+                window.state.initialLoadDone = true; window.changeTab('learning'); window.render(); window.showToast("오프라인 모드로 시작합니다.");
+            };
+
             window.logout = async function() { 
                 await window.auth.signOut(); 
                 window.isGuestMode = false; window.currentUser = null; window.render(); window.showToast('로그아웃 되었습니다.'); 
@@ -1468,6 +1797,7 @@
                                 window.state.inventory = data.inventory || [];
                                 window.state.friends = data.friends || [];
                                 window.state.friendRequests = data.friendRequests || [];
+                                window.state.claimedCollections = data.claimedCollections || [];
                             } else {
                                 const savedData = localStorage.getItem('phonicsAppState');
                                 if (savedData) {
@@ -1477,9 +1807,10 @@
                                         window.state.inventory = localData.inventory || [];
                                         window.state.friends = localData.friends || [];
                                         window.state.friendRequests = localData.friendRequests || [];
+                                        window.state.claimedCollections = localData.claimedCollections || [];
                                     } catch(e) {}
                                 } else {
-                                    window.state.coins = 200; window.state.inventory = []; window.state.friends = []; window.state.friendRequests = [];
+                                    window.state.coins = 200; window.state.inventory = []; window.state.friends = []; window.state.friendRequests = []; window.state.claimedCollections = [];
                                 }
                                 window.saveData(); 
                             }
